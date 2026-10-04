@@ -1,0 +1,11 @@
+{
+  "name": "karbon-ayak-izi",
+  "version": "1.0.0",
+  "description": "Şirket, fabrika ve kurumlar için aylık/yıllık karbon ayak izi hesaplama, karşılaştırma ve azaltım önerileri uygulaması",
+  "private": true,
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "test": "node --test tests/*.test.js"
+  },
+  "license": "MIT"
+}
