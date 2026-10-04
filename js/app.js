@@ -57,7 +57,76 @@
     toast._t = setTimeout(() => el.classList.remove('show'), 2600);
   }
 
+  // Gömülü çerçevelerde (ör. önizleme ortamları) dosya indirme engellenebilir.
+  const framed = (() => {
+    try {
+      return window.self !== window.top;
+    } catch (e) {
+      return true;
+    }
+  })();
+
+  function modal(build) {
+    return new Promise((resolve) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'modal';
+      wrap.innerHTML = '<div class="modal-box" role="dialog" aria-modal="true"></div>';
+      const box = wrap.firstChild;
+      const close = (v) => {
+        wrap.remove();
+        document.removeEventListener('keydown', onKey);
+        resolve(v);
+      };
+      const onKey = (e) => {
+        if (e.key === 'Escape') close(false);
+      };
+      document.addEventListener('keydown', onKey);
+      wrap.addEventListener('click', (e) => {
+        if (e.target === wrap) close(false);
+      });
+      build(box, close);
+      document.body.appendChild(wrap);
+      const focus = box.querySelector('[data-focus]') || box.querySelector('button');
+      if (focus) focus.focus();
+    });
+  }
+
+  /** Sayfa içi onay penceresi (tarayıcının confirm() penceresi yerine). */
+  function ask(message, okLabel) {
+    return modal((box, close) => {
+      box.innerHTML = `<p>${esc(message)}</p><div class="actions end"><button class="btn secondary" data-no>Vazgeç</button><button class="btn" data-focus data-yes>${esc(okLabel || 'Devam et')}</button></div>`;
+      box.querySelector('[data-no]').addEventListener('click', () => close(false));
+      box.querySelector('[data-yes]').addEventListener('click', () => close(true));
+    });
+  }
+
+  /** İndirme yapılamayan ortamlarda içeriği kopyalanabilir biçimde gösterir. */
+  function showText(name, content) {
+    return modal((box, close) => {
+      box.innerHTML = `<h3>${esc(name)}</h3><p class="muted">Bu ortamda dosya indirilemiyor. İçeriği kopyalayıp bir metin dosyasına <strong>${esc(name)}</strong> adıyla kaydedebilirsiniz.</p>
+        <textarea readonly rows="12" class="mono"></textarea>
+        <div class="actions end"><button class="btn secondary" data-close>Kapat</button><button class="btn" data-copy data-focus>Kopyala</button></div>`;
+      const ta = box.querySelector('textarea');
+      ta.value = content.replace(/^\uFEFF/, '');
+      box.querySelector('[data-close]').addEventListener('click', () => close(true));
+      box.querySelector('[data-copy]').addEventListener('click', () => {
+        const done = () => toast('Panoya kopyalandı.');
+        const fallback = () => {
+          ta.focus();
+          ta.select();
+          toast('Metin seçildi; Ctrl+C ile kopyalayın.');
+        };
+        try {
+          navigator.clipboard.writeText(ta.value).then(done, fallback);
+        } catch (e) {
+          fallback();
+        }
+      });
+    });
+  }
+
   function download(name, content, mime) {
+    if (framed) return showText(name, content);
     const blob = new Blob([content], { type: mime });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -118,8 +187,8 @@
 
   // ---------------------------------------------------------------- grafikler
 
-  const PALETTE = ['#1f7a4d', '#3a7ca5', '#f0a202', '#d9534f', '#7b5ea7', '#2bb3a3', '#e07a5f', '#8d99ae', '#b5838d', '#6a994e', '#bc6c25'];
-  const SCOPE_COLORS = { 1: '#d9534f', 2: '#f0a202', 3: '#3a7ca5' };
+  const PALETTE = ['#2f6b4f', '#4c7196', '#c7962c', '#b85a3e', '#7a6a9a', '#4f9a8a', '#a0785a', '#8a958f', '#9c5f74', '#6f8f3e', '#b07a2a'];
+  const SCOPE_COLORS = { 1: '#b85a3e', 2: '#c7962c', 3: '#4c7196' };
 
   function cssVar(name) {
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -188,8 +257,7 @@
   function emptyFacilities() {
     return `
       <div class="card empty">
-        <div class="big">🏭</div>
-        <h3>Henüz tesis eklenmemiş</h3>
+                <h3>Henüz tesis eklenmemiş</h3>
         <p>Karbon ayak izini hesaplamak için önce şirket, fabrika veya ofisinizi tesis olarak ekleyin.<br/>
         Uygulamayı denemek için örnek veriyi de yükleyebilirsiniz.</p>
         <div class="actions" style="justify-content:center">
@@ -207,9 +275,9 @@
     $$('[data-demo]', root).forEach((b) => b.addEventListener('click', loadDemo));
   }
 
-  function loadDemo() {
+  async function loadDemo() {
     const hasData = state.facilities.length > 0;
-    if (hasData && !confirm('Örnek veri yüklenirse mevcut tüm verileriniz silinecek. Devam edilsin mi?')) return;
+    if (hasData && !(await ask('Örnek veri yüklenirse mevcut tüm verileriniz silinecek. Devam edilsin mi?', 'Örnek veriyi yükle'))) return;
     state = Storage.demoState(now);
     ui.facility = ALL;
     ui.year = now.getFullYear();
@@ -242,7 +310,7 @@
           <div class="label">Hedef: ${target.targetYear}'e kadar %${fmt(target.pct)} azaltım</div>
           <div class="value">%${fmt(target.achievedPct, 1)} <small>gerçekleşen</small></div>
           <div class="progress ${target.onTrack ? '' : 'bad'}"><div style="width:${ratio * 100}%"></div></div>
-          <div class="sub">${target.onTrack ? '✅ Yolunda' : '⚠️ Hedefin gerisinde'} · baz ${target.baseYear}</div>
+          <div class="sub">${target.onTrack ? '<span class="pill ok">Yolunda</span>' : '<span class="pill bad">Hedefin gerisinde</span>'} · baz ${target.baseYear}</div>
         </div>`;
     } else if (target && target.incompleteBase) {
       targetKpi = `<div class="kpi"><div class="label">Azaltım hedefi</div><div class="value"><small>Baz yılı (${target.baseYear}) verisi eksik</small></div><div class="sub">${target.baseMonths}/12 ay girildi</div></div>`;
@@ -256,7 +324,7 @@
         </div>
         <div class="actions no-print">
           <button class="btn secondary" data-go="entry">+ Veri gir</button>
-          <button class="btn secondary" data-go="recommendations">💡 Öneriler</button>
+          <button class="btn secondary" data-go="recommendations">Öneriler</button>
         </div>
       </div>
 
@@ -458,10 +526,10 @@
         <div class="preview">
           <div class="totals" id="entryPreview"></div>
           <div class="actions">
-            <button type="button" class="btn secondary" id="copyPrev">↺ Önceki aydan kopyala</button>
+            <button type="button" class="btn secondary" id="copyPrev">Önceki aydan kopyala</button>
             <button type="button" class="btn secondary" id="clearForm">Temizle</button>
             ${rec ? '<button type="button" class="btn danger" id="deleteRec">Kaydı sil</button>' : ''}
-            <button type="submit" class="btn">💾 Kaydet</button>
+            <button type="submit" class="btn">Kaydet</button>
           </div>
         </div>
       </form>
@@ -485,7 +553,7 @@
                   const r = recs[k];
                   return `<tr class="${m.hasData ? '' : 'muted'}">
                     <td>${MONTHS[i]}</td>
-                    <td>${m.hasData ? '✅ Girildi' : '— Eksik'}</td>
+                    <td>${m.hasData ? '<span class="pill ok">Girildi</span>' : '<span class="pill">Eksik</span>'}</td>
                     <td class="num">${m.hasData ? t(m.scopes[1]) : ''}</td>
                     <td class="num">${m.hasData ? t(m.scopes[2]) : ''}</td>
                     <td class="num">${m.hasData ? t(m.scopes[3]) : ''}</td>
@@ -541,7 +609,7 @@
       render();
     });
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const k = form.elements.__month.value;
       if (!/^\d{4}-\d{2}$/.test(k)) return toast('Lütfen geçerli bir ay seçin.');
@@ -551,7 +619,7 @@
       } catch (err) {
         return toast(err.message);
       }
-      if (!Object.keys(data.activity).length && !confirm('Tüm alanlar boş. Bu ay için sıfır emisyonlu bir kayıt oluşturulsun mu?')) return;
+      if (!Object.keys(data.activity).length && !(await ask('Tüm alanlar boş. Bu ay için sıfır emisyonlu bir kayıt oluşturulsun mu?'))) return;
       recs[k] = data;
       // Kaydettikten sonra bir sonraki eksik aya geç.
       const next = Number(k.slice(5)) + 1;
@@ -578,8 +646,8 @@
     });
 
     const del = $('#deleteRec', root);
-    if (del) del.addEventListener('click', () => {
-      if (!confirm(`${monthLabel(monthK)} kaydı silinsin mi?`)) return;
+    if (del) del.addEventListener('click', async () => {
+      if (!(await ask(`${monthLabel(monthK)} kaydı silinsin mi?`, 'Kaydı sil'))) return;
       delete recs[monthK];
       persist('Kayıt silindi.');
     });
@@ -604,7 +672,7 @@
         const n = Object.keys(imported).length;
         if (!n) return toast('CSV dosyasında geçerli satır bulunamadı.');
         const overlap = Object.keys(imported).filter((k) => recs[k]).length;
-        if (overlap && !confirm(`${n} aylık kayıt içe aktarılacak; ${overlap} ay için mevcut kayıtların üzerine yazılacak. Devam edilsin mi?`)) return;
+        if (overlap && !(await ask(`${n} aylık kayıt içe aktarılacak; ${overlap} ay için mevcut kayıtların üzerine yazılacak. Devam edilsin mi?`))) return;
         Object.assign(recs, imported);
         persist(`${n} aylık kayıt içe aktarıldı.`);
       } catch (err) {
@@ -769,7 +837,7 @@
   function recCard(r) {
     return `<article class="rec ${r.type}">
       <header>
-        <h4>${r.type === 'warning' ? '⚠️ ' : r.type === 'info' ? 'ℹ️ ' : '✅ '}${esc(r.title)}</h4>
+        <h4>${esc(r.title)}</h4>
         <div class="actions">
           <span class="tag">${esc(r.category)}</span>
           <span class="tag ${r.priority}">Öncelik: ${r.priority}</span>
@@ -807,7 +875,7 @@
       ${actions.length ? `
       <div class="kpis">
         <div class="kpi"><div class="label">Mevcut emisyon (${agg.total.monthsWithData} ay)</div><div class="value">${t(total)} <small>tCO₂e</small></div></div>
-        <div class="kpi s3"><div class="label">Toplam azaltım potansiyeli</div><div class="value">${t(scenario)} <small>t</small></div><div class="sub">Mevcut emisyonun %${fmt(total ? (scenario / total) * 100 : 0, 1)}'i</div></div>
+        <div class="kpi"><div class="label">Toplam azaltım potansiyeli</div><div class="value">${t(scenario)} <small>t</small></div><div class="sub">Mevcut emisyonun %${fmt(total ? (scenario / total) * 100 : 0, 1)}'i</div></div>
         <div class="kpi"><div class="label">Tüm öneriler uygulanırsa</div><div class="value">${t(total - scenario)} <small>t</small></div><div class="sub">Tahmini, kaba bir senaryodur</div></div>
       </div>
       <div class="grid grid-2">
@@ -936,9 +1004,9 @@
     const cancel = $('#cancelEdit', root);
     if (cancel) cancel.addEventListener('click', () => { ui.editingFacility = null; render(); });
     $$('[data-fedit]', root).forEach((b) => b.addEventListener('click', () => { ui.editingFacility = b.dataset.fedit; render(); }));
-    $$('[data-fdel]', root).forEach((b) => b.addEventListener('click', () => {
+    $$('[data-fdel]', root).forEach((b) => b.addEventListener('click', async () => {
       const x = state.facilities.find((y) => y.id === b.dataset.fdel);
-      if (!x || !confirm(`"${x.name}" ve ${recordCount(x.id)} aylık kaydı kalıcı olarak silinsin mi?`)) return;
+      if (!x || !(await ask(`"${x.name}" ve ${recordCount(x.id)} aylık kaydı kalıcı olarak silinsin mi?`, 'Tesisi sil'))) return;
       state.facilities = state.facilities.filter((y) => y.id !== x.id);
       delete state.records[x.id];
       if (ui.editingFacility === x.id) ui.editingFacility = null;
@@ -967,7 +1035,7 @@
 
     root.innerHTML = `
       <div class="actions no-print" style="margin-bottom:1rem">
-        <button class="btn" id="printBtn">🖨️ Yazdır / PDF olarak kaydet</button>
+        <button class="btn" id="printBtn">Yazdır / PDF olarak kaydet</button>
         <button class="btn secondary" id="reportCsv">Özet tabloyu CSV indir</button>
       </div>
       <div class="card report-sheet">
@@ -1018,7 +1086,9 @@
         <p style="font-size:.85rem">Emisyonlar = faaliyet verisi × emisyon faktörü formülüyle hesaplanmıştır. Kapsam 2 emisyonları konum bazlı yöntemle (şebeke faktörü) hesaplanmış; YEK-G / I-REC belgeli veya öz üretim yenilenebilir elektrik için 0 faktörü kullanılmıştır (piyasa bazlı yaklaşım). Soğutucu gazlar için IPCC AR5 küresel ısınma potansiyelleri esas alınmıştır. Varsayılan faktörler yaklaşık değerlerdir; ${Object.keys(state.factorOverrides).length ? 'bazı faktörler kullanıcı tarafından güncellenmiştir.' : 'kullanıcı tarafından değiştirilmemiştir.'}</p>
       </div>`;
 
-    $('#printBtn', root).addEventListener('click', () => window.print());
+    const printBtn = $('#printBtn', root);
+    if (framed) printBtn.hidden = true;
+    else printBtn.addEventListener('click', () => window.print());
     $('#reportCsv', root).addEventListener('click', () => {
       const lines = [['ay', 'kapsam1_t', 'kapsam2_t', 'kapsam3_t', 'toplam_t'].join(';')];
       cur.months.forEach((m, i) => {
@@ -1029,7 +1099,7 @@
     });
   };
 
-  // ---------------------------------------------------------------- Faktörler & Ayarlar
+  // ---------------------------------------------------------------- Faktörler ve Ayarlar
 
   renderers.settings = (root) => {
     const ov = state.factorOverrides;
@@ -1062,8 +1132,8 @@
         <h3>Veri yönetimi</h3>
         <p>Tüm veriler yalnızca bu tarayıcıda (localStorage) saklanır. Düzenli olarak yedek alın; başka bir bilgisayara aktarmak için yedek dosyasını içe aktarın.</p>
         <div class="actions">
-          <button class="btn" id="exportJson">⬇️ Yedek al (JSON)</button>
-          <label class="btn secondary">⬆️ Yedekten geri yükle<input type="file" id="importJson" accept=".json,application/json" hidden /></label>
+          <button class="btn" id="exportJson">Yedek al (JSON)</button>
+          <label class="btn secondary">Yedekten geri yükle<input type="file" id="importJson" accept=".json,application/json" hidden /></label>
           <button class="btn secondary" data-demo>Örnek veriyi yükle</button>
           <button class="btn danger" id="clearAll">Tüm verileri sil</button>
         </div>
@@ -1084,8 +1154,8 @@
       state.factorOverrides = next;
       persist('Emisyon faktörleri kaydedildi.');
     });
-    $('#resetFactors', root).addEventListener('click', () => {
-      if (!confirm('Tüm özel faktörler silinip varsayılan değerlere dönülsün mü?')) return;
+    $('#resetFactors', root).addEventListener('click', async () => {
+      if (!(await ask('Tüm özel faktörler silinip varsayılan değerlere dönülsün mü?'))) return;
       state.factorOverrides = {};
       persist('Varsayılan faktörlere dönüldü.');
     });
@@ -1096,7 +1166,7 @@
       try {
         const data = Storage.normalize(JSON.parse(await readFile(e.target)));
         if (!data.facilities.length) throw new Error('Dosyada tesis bulunamadı.');
-        if (!confirm(`${data.facilities.length} tesis içeren yedek yüklenecek. Mevcut veriler silinecek. Devam edilsin mi?`)) return;
+        if (!(await ask(`${data.facilities.length} tesis içeren yedek yüklenecek. Mevcut veriler silinecek. Devam edilsin mi?`, 'Geri yükle'))) return;
         state = data;
         ui.facility = null;
         ui.cmp = {};
@@ -1107,8 +1177,8 @@
         e.target.value = '';
       }
     });
-    $('#clearAll', root).addEventListener('click', () => {
-      if (!confirm('TÜM tesisler, kayıtlar ve özel faktörler kalıcı olarak silinecek. Emin misiniz?')) return;
+    $('#clearAll', root).addEventListener('click', async () => {
+      if (!(await ask('TÜM tesisler, kayıtlar ve özel faktörler kalıcı olarak silinecek. Emin misiniz?', 'Tümünü sil'))) return;
       state = Storage.emptyState();
       ui.facility = null;
       ui.cmp = {};

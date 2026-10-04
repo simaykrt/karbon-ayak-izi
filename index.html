@@ -5,17 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Karbon Ayak İzi</title>
   <meta name="description" content="Şirket, fabrika ve kurumlar için aylık/yıllık karbon ayak izi hesaplama, karşılaştırma ve azaltım önerileri." />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8C%BF%3C/text%3E%3C/svg%3E" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232f6b4f'/%3E%3Crect x='8' y='9' width='4' height='15' fill='%23fff'/%3E%3Crect x='14' y='14' width='4' height='10' fill='%23fff'/%3E%3Crect x='20' y='18' width='4' height='6' fill='%23fff'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" />
   <link rel="stylesheet" href="css/styles.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
 </head>
 <body>
   <header class="topbar">
     <div class="brand">
-      <span class="logo" aria-hidden="true">🌿</span>
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <rect x="1" y="1" width="30" height="30" rx="5" fill="none" stroke="currentColor" stroke-width="2" />
+        <rect x="8" y="9" width="4" height="15" fill="currentColor" />
+        <rect x="14" y="14" width="4" height="10" fill="currentColor" opacity=".75" />
+        <rect x="20" y="18" width="4" height="6" fill="currentColor" opacity=".5" />
+      </svg>
       <div>
         <h1>Karbon Ayak İzi</h1>
-        <p>Kurumsal sera gazı envanteri · Kapsam 1-2-3</p>
+        <p>Sera gazı envanteri · Kapsam 1, 2, 3</p>
       </div>
     </div>
     <div class="selectors">
@@ -29,13 +37,13 @@
   </header>
 
   <nav class="tabs" id="tabs">
-    <button data-view="dashboard" class="active">📊 Panel</button>
-    <button data-view="entry">📝 Veri Girişi</button>
-    <button data-view="compare">⚖️ Karşılaştırma</button>
-    <button data-view="recommendations">💡 Öneriler</button>
-    <button data-view="facilities">🏭 Tesisler</button>
-    <button data-view="report">📄 Rapor</button>
-    <button data-view="settings">⚙️ Faktörler & Ayarlar</button>
+    <button data-view="dashboard" class="active">Panel</button>
+    <button data-view="entry">Veri Girişi</button>
+    <button data-view="compare">Karşılaştırma</button>
+    <button data-view="recommendations">Öneriler</button>
+    <button data-view="facilities">Tesisler</button>
+    <button data-view="report">Rapor</button>
+    <button data-view="settings">Faktörler ve Ayarlar</button>
   </nav>
 
   <main>
@@ -52,7 +60,7 @@
 
   <footer class="footer">
     Hesaplamalar GHG Protocol yaklaşımına göre yapılır. Varsayılan emisyon faktörleri yaklaşık değerlerdir;
-    resmî raporlama için güncel ulusal faktörleri "Faktörler & Ayarlar" sayfasından girin. Veriler yalnızca bu tarayıcıda saklanır.
+    resmî raporlama için güncel ulusal faktörleri "Faktörler ve Ayarlar" sayfasından girin. Veriler yalnızca bu tarayıcıda saklanır.
   </footer>
 
   <script src="js/factors.js"></script>

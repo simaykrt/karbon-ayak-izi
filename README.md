@@ -14,7 +14,7 @@ Hesaplamalar **GHG Protocol** (Sera Gazı Protokolü) yaklaşımına göre **Kap
 | 💡 **Öneriler** | Emisyon dağılımına göre önceliklendirilmiş azaltım önerileri ve tahmini azaltım potansiyeli (tCO₂e); artış, olağan dışı aylar, eksik veri, hedeften sapma uyarıları; SKDM (CBAM) ve İklim Kanunu bilgilendirmeleri |
 | 🏭 **Tesisler** | Birden fazla tesis (fabrika, ofis, depo…) tanımlama; çalışan sayısı, alan, üretim birimi ve azaltım hedefi (baz yılı, hedef yılı, %) |
 | 📄 **Rapor** | Yazdırılabilir / PDF olarak kaydedilebilir yıllık sera gazı raporu ve CSV özet |
-| ⚙️ **Faktörler & Ayarlar** | Emisyon faktörlerini güncel resmî değerlerle değiştirme, JSON yedek alma/geri yükleme, örnek veri yükleme |
+| ⚙️ **Faktörler ve Ayarlar** | Emisyon faktörlerini güncel resmî değerlerle değiştirme, JSON yedek alma/geri yükleme, örnek veri yükleme |
 
 ## Kullanım
 
@@ -45,7 +45,7 @@ Emisyon (kgCO₂e) = Faaliyet verisi × Emisyon faktörü
 | **Kapsam 2** – enerji dolaylı | Şebeke elektriği, yenilenebilir elektrik (YEK-G / I-REC / GES, faktör 0), satın alınan ısı/buhar |
 | **Kapsam 3** – diğer dolaylı | Su, atık (depolama / geri dönüşüm), kâğıt, iş seyahatleri (uçak, araç), çalışan ulaşımı, karayolu ve deniz yolu nakliye |
 
-- Varsayılan faktörler DEFRA/DESNZ dönüşüm faktörleri ve IPCC AR5 küresel ısınma potansiyelleri esas alınarak belirlenmiş **yaklaşık** değerlerdir. Resmî raporlamada (ör. Türkiye elektrik şebeke faktörü için ETKB'nin yayımladığı değer) güncel faktörleri **Faktörler & Ayarlar** sayfasından girin.
+- Varsayılan faktörler DEFRA/DESNZ dönüşüm faktörleri ve IPCC AR5 küresel ısınma potansiyelleri esas alınarak belirlenmiş **yaklaşık** değerlerdir. Resmî raporlamada (ör. Türkiye elektrik şebeke faktörü için ETKB'nin yayımladığı değer) güncel faktörleri **Faktörler ve Ayarlar** sayfasından girin.
 - Yıllar karşılaştırılırken yüzde değişim, **yalnızca her iki yılda da verisi olan aylar** üzerinden hesaplanır (eksik yıl yanıltıcı sonuç vermesin diye).
 - Hedef takibi: baz yılı emisyonundan hedef yılına doğrusal azalma yörüngesi çizilir; içinde bulunulan yılın eksik ayları yıllığa ölçeklenerek karşılaştırılır.
 
