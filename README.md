@@ -4,6 +4,8 @@ Karbon ayak izini hesaplamak zorunda olan şirket, fabrika ve diğer kurumlar i�
 
 Hesaplamalar **GHG Protocol** (Sera Gazı Protokolü) yaklaşımına göre **Kapsam 1, 2 ve 3** olarak ayrılır.
 
+**Uygulamayı açın:** https://simaykrt.github.io/karbon-ayak-izi/
+
 ## Özellikler
 
 | Sayfa | Ne yapar? |
