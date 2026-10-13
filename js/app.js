@@ -4,7 +4,7 @@
 (function () {
   'use strict';
 
-  const { Factors, Calc, Recommendations, Storage } = window.KAI;
+  const { Factors, Calc, Recommendations, Storage, Yayin } = window.KAI;
   const { SOURCES, SOURCE_MAP, SCOPES, MONTHS, MONTHS_SHORT, FACILITY_TYPES } = Factors;
   const ALL = Calc.ALL;
 
@@ -1154,6 +1154,21 @@
           <button class="btn secondary" data-demo>Örnek veriyi yükle</button>
           <button class="btn danger" id="clearAll">Tüm verileri sil</button>
         </div>
+      </div>
+
+      <div class="card">
+        <h3>Mobil uygulama</h3>
+        <p>Yöneticiler verileri Karbon Ayak İzi mobil uygulamasından takip eder. Mobil uygulama veri girişi yapmaz; buradaki güncel sonuçları okur.
+        Verileri güncelledikten sonra yayın dosyasını oluşturup GitHub'a yükleyin:</p>
+        <ol>
+          <li><strong>Yayın dosyasını oluştur</strong> düğmesine basın; <code>yayin.json</code> dosyası iner.</li>
+          <li>GitHub'da deponun <strong>veri</strong> klasörünü açın: <span class="mono">github.com/simaykrt/karbon-ayak-izi/tree/main/veri</span></li>
+          <li><strong>Add file → Upload files</strong> ile dosyayı yükleyin ve <strong>Commit changes</strong> deyin.</li>
+          <li>1-2 dakika sonra mobil uygulamada aşağı çekip yenileyince yeni veriler görünür.</li>
+        </ol>
+        <div class="actions" style="margin-top:0.75rem">
+          <button class="btn" id="exportMobile">Yayın dosyasını oluştur</button>
+        </div>
       </div>`;
     bindCommon(root);
 
@@ -1175,6 +1190,11 @@
       if (!(await ask('Tüm özel faktörler silinip varsayılan değerlere dönülsün mü?'))) return;
       state.factorOverrides = {};
       persist('Varsayılan faktörlere dönüldü.');
+    });
+    $('#exportMobile', root).addEventListener('click', () => {
+      if (!state.facilities.length) return toast('Yayınlanacak tesis yok.');
+      download('yayin.json', JSON.stringify(Yayin.olustur(state, new Date())), 'application/json');
+      toast('yayin.json oluşturuldu. Şimdi GitHub\'daki veri klasörüne yükleyin.');
     });
     $('#exportJson', root).addEventListener('click', () => {
       download(`karbon-ayak-izi-yedek-${now.toISOString().slice(0, 10)}.json`, JSON.stringify(state, null, 2), 'application/json');

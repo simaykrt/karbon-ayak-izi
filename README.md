@@ -36,6 +36,17 @@ Kurulum gerekmez.
 
 Grafikler için Chart.js internetten (cdnjs) yüklenir; internet yoksa uygulama tablolarla çalışmaya devam eder.
 
+## Mobil uygulama
+
+Yöneticilerin verileri telefondan takip etmesi için bir Flutter uygulaması da var: [mobil/](mobil/). Veri girişi ve kontroller web uygulamasında yapılır; mobil uygulama sadece sonuçları gösterir.
+
+Mobil uygulamayı güncellemek için:
+1. Web uygulamasında **Faktörler ve Ayarlar → Mobil uygulama → Yayın dosyasını oluştur** düğmesine basın.
+2. İnen `yayin.json` dosyasını GitHub'da [veri/](veri/) klasörüne yükleyin (**Add file → Upload files**).
+3. 1-2 dakika sonra mobil uygulamada ekranı aşağı çekince yeni veriler görünür.
+
+Ayrıntılar için [mobil/README.md](mobil/README.md) ve [mobil/KOD_REHBERI.md](mobil/KOD_REHBERI.md) dosyalarına bakın.
+
 ## Hesaplama yöntemi
 
 ```
@@ -65,6 +76,10 @@ js/factors.js           Emisyon kaynakları, kapsamlar ve varsayılan faktörler
 js/calc.js              Hesaplama motoru (aylık/yıllık toplamlar, karşılaştırma, yoğunluk, hedef)
 js/recommendations.js   Azaltım önerileri motoru
 js/storage.js           Kayıt (localStorage), CSV/JSON, örnek veri
+js/yayin.js             Mobil uygulama için yayın dosyası (yayin.json)
+veri/yayin.json         Mobil uygulamanın okuduğu yayınlanmış veriler
+scripts/                Örnek verilerden yayin.json üretme betiği
+mobil/                  Flutter mobil uygulaması
 js/app.js               Arayüz, sayfalar ve grafikler
 tests/calc.test.js      Birim testleri
 ```

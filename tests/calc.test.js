@@ -132,3 +132,19 @@ test('örnek veri tutarlı ve hesaplanabilir', () => {
   const tp = Calc.targetProgress(demo, 'demo_fabrika', 2026);
   assert.ok(tp && !tp.incompleteBase);
 });
+
+test('mobil yayın dosyası web hesaplarıyla aynı sonuçları içerir', () => {
+  const Yayin = require('../js/yayin.js');
+  const s = sampleState();
+  const y = Yayin.olustur(s, new Date(2026, 0, 15));
+  assert.equal(y.surum, 1);
+  assert.equal(y.raporYili, 2025);
+  assert.equal(y.tesisler.length, 2);
+  const ay = y.tesisler[0].aylar['2025-03'];
+  close(ay.t, Math.round(Calc.recordEmissions(s.records.f1['2025-03'].activity).total * 10) / 10, 0.11);
+  close(ay.k[0] + ay.k[1] + ay.k[2], ay.t, 0.2);
+  assert.equal(y.kaynaklar.electricity.kapsam, 2);
+  assert.ok(y.tesisler[0].oneriler.some((o) => o.baslik === 'Yenilenebilir elektriğe geçiş'));
+  assert.ok(y.genelOneriler.length > 0);
+  assert.deepEqual(y.tesisler[0].hedef, { bazYili: 2024, hedefYili: 2030, yuzde: 30 });
+});
