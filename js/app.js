@@ -247,7 +247,24 @@
 
   const renderers = {};
 
+  function renderDemoBanner() {
+    const el = $('#demoBanner');
+    el.hidden = !state.demo;
+    if (!state.demo) return;
+    el.innerHTML = `<span><strong>Örnek veriler gösteriliyor.</strong> Dört tesisin son üç yılı uygulamayı denemeniz için hazır olarak yüklendi. Kendi verilerinizi girmeye başlamak için bu verileri temizleyin.</span>
+      <button class="btn secondary sm" id="clearDemo">Örnek verileri temizle</button>`;
+    $('#clearDemo', el).addEventListener('click', async () => {
+      if (!(await ask('Örnek tesisler ve tüm kayıtları silinecek. Ardından kendi tesisinizi ekleyebilirsiniz.', 'Temizle'))) return;
+      state = Storage.emptyState();
+      ui.facility = null;
+      ui.cmp = {};
+      ui.view = 'facilities';
+      persist('Örnek veriler temizlendi. Şimdi kendi tesisinizi ekleyin.');
+    });
+  }
+
   function render() {
+    renderDemoBanner();
     $$('.tabs button').forEach((b) => b.classList.toggle('active', b.dataset.view === ui.view));
     $$('.view').forEach((v) => v.classList.toggle('active', v.id === 'view-' + ui.view));
     const fn = renderers[ui.view];
@@ -1205,6 +1222,20 @@
       ui.cmp = {};
       render();
     });
+    // İlk ziyarette uygulama boş görünmesin diye örnek verileri yükle (yalnızca bir kez).
+    const SEEN_KEY = 'karbonAyakIzi.ilkZiyaret';
+    let seen = true;
+    try {
+      seen = !!localStorage.getItem(SEEN_KEY);
+      localStorage.setItem(SEEN_KEY, '1');
+    } catch (e) {
+      seen = false;
+    }
+    if (!state.facilities.length && !seen) {
+      state = Storage.demoState(now);
+      ui.facility = Calc.ALL;
+      Storage.save(state);
+    }
     if (!state.facilities.length) ui.view = 'dashboard';
     refreshSelectors();
     render();

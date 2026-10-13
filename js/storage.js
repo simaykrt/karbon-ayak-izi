@@ -18,6 +18,7 @@
     s.facilities = Array.isArray(data.facilities) ? data.facilities.filter((f) => f && f.id) : [];
     s.records = data.records && typeof data.records === 'object' ? data.records : {};
     s.factorOverrides = data.factorOverrides && typeof data.factorOverrides === 'object' ? data.factorOverrides : {};
+    if (data.demo) s.demo = true;
     return s;
   }
 
@@ -116,12 +117,13 @@
     };
   }
 
-  /** İki tesis için iki yıllık gerçekçi örnek veri üretir. */
+  /** Dört tesis için son üç yılın gerçekçi örnek verisini üretir. */
   function demoState(today) {
     const now = today || new Date();
     const thisYear = now.getFullYear();
     const lastFullMonth = now.getMonth(); // içinde bulunulan aydan önceki ay sayısı
     const s = emptyState();
+    s.demo = true;
     const factory = {
       id: 'demo_fabrika',
       name: 'Gebze Üretim Tesisi',
@@ -148,9 +150,34 @@
       reductionTarget: 40,
       targetYear: thisYear + 4,
     };
-    s.facilities.push(factory, office);
-    s.records[factory.id] = {};
-    s.records[office.id] = {};
+    const textile = {
+      id: 'demo_tekstil',
+      name: 'Bursa Dokuma ve Boyahane',
+      type: 'Fabrika',
+      sector: 'Tekstil (dokuma, boya, apre)',
+      city: 'Bursa',
+      employees: 310,
+      area: 21000,
+      productionUnit: 'ton kumaş',
+      baseYear: thisYear - 2,
+      reductionTarget: 35,
+      targetYear: thisYear + 4,
+    };
+    const depot = {
+      id: 'demo_depo',
+      name: 'İzmir Soğuk Hava Deposu',
+      type: 'Depo / Lojistik',
+      sector: 'Gıda lojistiği',
+      city: 'İzmir',
+      employees: 85,
+      area: 18000,
+      productionUnit: 'palet',
+      baseYear: '',
+      reductionTarget: '',
+      targetYear: '',
+    };
+    s.facilities.push(factory, textile, depot, office);
+    for (const f of s.facilities) s.records[f.id] = {};
 
     const rand = rng(42);
     const jitter = (v, p) => Math.round(v * (1 + (rand() - 0.5) * 2 * (p || 0.06)));
@@ -208,8 +235,52 @@
             commute: jitter(135 * 21 * 2 * 18 * (1 - age * 0.08)),
           },
         };
+
+        // Tekstil: buhar kazanında kömür kullanılıyor; son yıl kısmen doğal gaza geçilmiş.
+        const tProd = jitter(380 * (age === 2 && m === 8 ? 0.55 : 1), 0.07);
+        const coalShare = [1, 1, 0.45][age];
+        s.records[textile.id][Calc.monthKey(y, m)] = {
+          production: tProd,
+          note: age === 2 && m === 8 ? 'Yıllık bakım duruşu (2 hafta)' : age === 2 && m === 3 ? 'Kömür kazanı yerine doğal gaz kazanı devreye alındı' : '',
+          activity: {
+            electricity: jitter(tProd * 2100 * cooling[i]),
+            coal: Math.round(tProd * 0.16 * coalShare * (0.85 + heating[i] * 0.1) * 10) / 10,
+            natural_gas: jitter(tProd * (180 + (1 - coalShare) * 330) * (0.8 + heating[i] * 0.2)),
+            fuel_oil: age === 0 ? jitter(2500) : 0,
+            diesel_fleet: jitter(1600),
+            water: jitter(tProd * 95 * (1 - age * 0.07)),
+            waste_landfill: jitter(tProd * 55 * (1 - age * 0.1)),
+            waste_recycled: jitter(tProd * 40 * (1 + age * 0.15)),
+            freight_road: jitter(tProd * 300),
+            freight_sea: jitter(tProd * 2600),
+            commute: jitter(310 * 22 * 2 * 11),
+          },
+        };
+
+        // Soğuk hava deposu: soğutma yükü yazın artıyor, R-404A kaçakları sık.
+        const pallets = jitter(5200 * (1 + age * 0.06), 0.1);
+        s.records[depot.id][Calc.monthKey(y, m)] = {
+          production: pallets,
+          note: m === 7 && age === 1 ? 'Kompresör arızası, soğutucu gaz takviyesi yapıldı' : '',
+          activity: {
+            electricity: jitter(98000 * cooling[i] * cooling[i]),
+            diesel_stationary: jitter(m >= 6 && m <= 8 ? 700 : 250),
+            diesel_fleet: jitter(9800 * (1 + age * 0.04)),
+            lpg: jitter(1300),
+            ref_r404a: m === 7 && age === 1 ? 34 : m % 4 === 0 ? 6 : 0,
+            water: jitter(240),
+            waste_landfill: jitter(5200),
+            waste_recycled: jitter(3100 * (1 + age * 0.1)),
+            freight_road: jitter(pallets * 120),
+            commute: jitter(85 * 24 * 2 * 15),
+          },
+        };
       }
     }
+    // Birkaç gerçekçi açıklama notu
+    const fk = s.records[factory.id];
+    if (fk[Calc.monthKey(thisYear - 1, 4)]) fk[Calc.monthKey(thisYear - 1, 4)].note = 'Çatı GES (1,2 MWp) devreye alındı';
+    if (fk[Calc.monthKey(thisYear, 2)]) fk[Calc.monthKey(thisYear, 2)].note = 'Basınçlı hava kaçak taraması yapıldı';
     return s;
   }
 

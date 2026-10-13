@@ -1,4 +1,4 @@
-# 🌿 Karbon Ayak İzi
+# Karbon Ayak İzi
 
 Karbon ayak izini hesaplamak zorunda olan şirket, fabrika ve diğer kurumlar için hazırlanmış bir web uygulaması. Uygulama emisyonları **aylık ve yıllık** olarak hesaplar, dönemleri ve tesisleri **karşılaştırır** ve emisyonları **azaltmak için öneriler** sunar.
 
@@ -10,13 +10,13 @@ Hesaplamalar **GHG Protocol** (Sera Gazı Protokolü) yaklaşımına göre **Kap
 
 | Sayfa | Ne yapar? |
 |---|---|
-| 📊 **Panel** | Yıllık toplam ve kapsam bazında emisyonlar, geçen yılla değişim, yoğunluk göstergeleri (çalışan başına, m² başına, birim üretim başına), azaltım hedefi ilerlemesi, aylık grafik, kaynaklara göre dağılım ve aylık döküm tablosu |
-| 📝 **Veri Girişi** | Tesis bazında aylık tüketim verilerini girme (doğal gaz, elektrik, yakıtlar, soğutucu gazlar, su, atık, seyahat, lojistik…), anlık emisyon önizlemesi, önceki aydan kopyalama, CSV içe/dışa aktarma |
-| ⚖️ **Karşılaştırma** | Yıl ↔ yıl (aylık grafik ve kaynak bazında fark), ay ↔ ay (önceki ay / geçen yılın aynı ayı) ve tesis ↔ tesis karşılaştırması |
-| 💡 **Öneriler** | Emisyon dağılımına göre önceliklendirilmiş azaltım önerileri ve tahmini azaltım potansiyeli (tCO₂e); artış, olağan dışı aylar, eksik veri, hedeften sapma uyarıları; SKDM (CBAM) ve İklim Kanunu bilgilendirmeleri |
-| 🏭 **Tesisler** | Birden fazla tesis (fabrika, ofis, depo…) tanımlama; çalışan sayısı, alan, üretim birimi ve azaltım hedefi (baz yılı, hedef yılı, %) |
-| 📄 **Rapor** | Yazdırılabilir / PDF olarak kaydedilebilir yıllık sera gazı raporu ve CSV özet |
-| ⚙️ **Faktörler ve Ayarlar** | Emisyon faktörlerini güncel resmî değerlerle değiştirme, JSON yedek alma/geri yükleme, örnek veri yükleme |
+| **Panel** | Yıllık toplam ve kapsam bazında emisyonlar, geçen yılla değişim, yoğunluk göstergeleri (çalışan başına, m² başına, birim üretim başına), azaltım hedefi ilerlemesi, aylık grafik, kaynaklara göre dağılım ve aylık döküm tablosu |
+| **Veri Girişi** | Tesis bazında aylık tüketim verilerini girme (doğal gaz, elektrik, yakıtlar, soğutucu gazlar, su, atık, seyahat, lojistik…), anlık emisyon önizlemesi, önceki aydan kopyalama, CSV içe/dışa aktarma |
+| **Karşılaştırma** | Yıl ↔ yıl (aylık grafik ve kaynak bazında fark), ay ↔ ay (önceki ay / geçen yılın aynı ayı) ve tesis ↔ tesis karşılaştırması |
+| **Öneriler** | Emisyon dağılımına göre önceliklendirilmiş azaltım önerileri ve tahmini azaltım potansiyeli (tCO₂e); artış, olağan dışı aylar, eksik veri, hedeften sapma uyarıları; SKDM (CBAM) ve İklim Kanunu bilgilendirmeleri |
+| **Tesisler** | Birden fazla tesis (fabrika, ofis, depo…) tanımlama; çalışan sayısı, alan, üretim birimi ve azaltım hedefi (baz yılı, hedef yılı, %) |
+| **Rapor** | Yazdırılabilir / PDF olarak kaydedilebilir yıllık sera gazı raporu ve CSV özet |
+| **Faktörler ve Ayarlar** | Emisyon faktörlerini güncel resmî değerlerle değiştirme, JSON yedek alma/geri yükleme, örnek veri yükleme |
 
 ## Kullanım
 
@@ -27,9 +27,10 @@ Kurulum gerekmez.
    npm start          # python3 -m http.server 8080
    # http://localhost:8080 adresini açın
    ```
-2. **Tesisler** sayfasından şirketinizi / fabrikanızı ekleyin (denemek için "Örnek veriyi yükle" butonunu kullanabilirsiniz).
-3. **Veri Girişi** sayfasından her ayın faturalarındaki tüketim değerlerini girin.
-4. **Panel**, **Karşılaştırma**, **Öneriler** ve **Rapor** sayfalarından sonuçları inceleyin.
+2. Uygulama ilk açılışta dört örnek tesisin (Gebze metal fabrikası, Bursa tekstil fabrikası, İzmir soğuk hava deposu, İstanbul genel merkez) son üç yıllık verileriyle gelir. Kendi verilerinize başlamak için üstteki **Örnek verileri temizle** düğmesine basın.
+3. **Tesisler** sayfasından şirketinizi / fabrikanızı ekleyin.
+4. **Veri Girişi** sayfasından her ayın faturalarındaki tüketim değerlerini girin.
+5. **Panel**, **Karşılaştırma**, **Öneriler** ve **Rapor** sayfalarından sonuçları inceleyin.
 
 > Veriler yalnızca kullandığınız tarayıcıda (localStorage) saklanır, hiçbir sunucuya gönderilmez. Düzenli olarak **Ayarlar → Yedek al (JSON)** ile yedek alın.
 

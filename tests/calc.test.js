@@ -123,7 +123,9 @@ test('CSV dışa ve içe aktarma birbirinin tersidir', () => {
 
 test('örnek veri tutarlı ve hesaplanabilir', () => {
   const demo = Storage.demoState(new Date(2026, 9, 4));
-  assert.equal(demo.facilities.length, 2);
+  assert.equal(demo.facilities.length, 4);
+  assert.equal(demo.demo, true);
+  assert.equal(Storage.normalize(JSON.parse(JSON.stringify(demo))).demo, true);
   const y = Calc.aggregateYear(demo, Calc.ALL, 2026);
   assert.equal(y.total.monthsWithData, 9);
   assert.ok(y.total.total > 0);
