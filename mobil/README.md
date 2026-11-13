@@ -25,7 +25,9 @@ Personel (web)  ──"Yayın dosyasını oluştur"──▶  veri/yayin.json (G
 
 **Android:** GitHub'da **Actions → Mobil uygulama (APK)** sayfasındaki son başarılı çalışmanın altında `karbon-ayak-izi-apk` dosyası bulunur. İndirilen zip'in içindeki `app-release.apk` dosyası telefona kurulur. Kurulumda "bilinmeyen kaynaklara izin ver" seçeneğini açmak gerekebilir.
 
-**iPhone:** iOS uygulaması yalnızca Mac'te derlenebilir:
+**iPhone (kurulumsuz):** Uygulamanın web sürümü https://simaykrt.github.io/karbon-ayak-izi/mobil-web/ adresinde. Safari'de açıp **Paylaş → Ana Ekrana Ekle** denince telefonda kendi simgesiyle, tam ekran açılır. Mobil kod değişince bu sürüm depo kökünde `bash scripts/mobil-web-derle.sh` ile yeniden üretilir.
+
+**iPhone (gerçek iOS uygulaması):** iOS uygulaması yalnızca Mac'te derlenebilir:
 1. Mac'e [Flutter](https://docs.flutter.dev/get-started/install/macos) ve App Store'dan Xcode kurulur.
 2. `mobil` klasöründe `open ios/Runner.xcworkspace` ile proje Xcode'da açılır. **Signing & Capabilities** bölümünde Apple kimliği seçilir.
 3. iPhone kabloyla bağlanır ve `flutter run --release` çalıştırılır. Ücretsiz Apple kimliğiyle yüklenen uygulama 7 gün çalışır.
