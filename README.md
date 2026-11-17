@@ -12,8 +12,8 @@ Hesaplamalar **GHG Protocol** (Sera Gazı Protokolü) yaklaşımına göre **Kap
 |---|---|
 | **Panel** | Toplam emisyon, geçen yıla göre değişim, aylık grafik, en büyük kaynaklar; Yazdır düğmesi |
 | **Veri Girişi** | Tesis bazında aylık tüketim verilerini girme (doğal gaz, elektrik, yakıtlar, soğutucu gazlar, su, atık, seyahat, lojistik…), anlık emisyon önizlemesi, önceki aydan kopyalama, CSV içe/dışa aktarma |
-| **Karşılaştırma** | Yıl ↔ yıl (aylık grafik ve kaynak bazında fark), ay ↔ ay (önceki ay / geçen yılın aynı ayı) ve tesis ↔ tesis karşılaştırması |
-| **Öneriler** | Emisyon dağılımına göre önceliklendirilmiş azaltım önerileri ve tahmini azaltım potansiyeli (tCO₂e); artış, olağan dışı aylar, eksik veri, hedeften sapma uyarıları; SKDM (CBAM) ve İklim Kanunu bilgilendirmeleri |
+| **Karşılaştırma** | İki yılın aylık karşılaştırması ve tesislerin toplam emisyonları |
+| **Öneriler** | En etkili 5 azaltım önerisi ve dikkat edilecek uyarılar |
 | **Tesisler** | Birden fazla tesis (fabrika, ofis, depo…) tanımlama; çalışan sayısı, alan, üretim birimi ve azaltım hedefi (baz yılı, hedef yılı, %) |
 | **Ayarlar** | Emisyon faktörlerini güncel resmî değerlerle değiştirme, JSON yedek alma/geri yükleme, örnek veri yükleme, mobil uygulama için yayın |
 | **Kullanıcılar** | Sistem yöneticisi için kullanıcı ekleme, düzenleme, silme, pasife alma; rol ve tesis ataması |
