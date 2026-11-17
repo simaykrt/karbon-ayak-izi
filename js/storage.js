@@ -117,164 +117,174 @@
     };
   }
 
-  /** Dört tesis için son üç yılın gerçekçi örnek verisini üretir. */
+  /** Sekiz tesis için son dört yılın gerçekçi örnek verisini üretir. */
   function demoState(today) {
     const now = today || new Date();
     const thisYear = now.getFullYear();
     const lastFullMonth = now.getMonth(); // içinde bulunulan aydan önceki ay sayısı
+    const ilkYil = thisYear - 3;
     const s = emptyState();
     s.demo = true;
-    const factory = {
-      id: 'demo_fabrika',
-      name: 'Gebze Üretim Tesisi',
-      type: 'Fabrika',
-      sector: 'Metal eşya imalatı',
-      city: 'Kocaeli',
-      employees: 420,
-      area: 28000,
-      productionUnit: 'ton ürün',
-      baseYear: thisYear - 2,
-      reductionTarget: 30,
-      targetYear: thisYear + 4,
-    };
-    const office = {
-      id: 'demo_ofis',
-      name: 'İstanbul Genel Merkez',
-      type: 'Şirket / Ofis',
-      sector: 'Yönetim ve satış',
-      city: 'İstanbul',
-      employees: 135,
-      area: 4200,
-      productionUnit: '',
-      baseYear: thisYear - 2,
-      reductionTarget: 40,
-      targetYear: thisYear + 4,
-    };
-    const textile = {
-      id: 'demo_tekstil',
-      name: 'Bursa Dokuma ve Boyahane',
-      type: 'Fabrika',
-      sector: 'Tekstil (dokuma, boya, apre)',
-      city: 'Bursa',
-      employees: 310,
-      area: 21000,
-      productionUnit: 'ton kumaş',
-      baseYear: thisYear - 2,
-      reductionTarget: 35,
-      targetYear: thisYear + 4,
-    };
-    const depot = {
-      id: 'demo_depo',
-      name: 'İzmir Soğuk Hava Deposu',
-      type: 'Depo / Lojistik',
-      sector: 'Gıda lojistiği',
-      city: 'İzmir',
-      employees: 85,
-      area: 18000,
-      productionUnit: 'palet',
-      baseYear: '',
-      reductionTarget: '',
-      targetYear: '',
-    };
-    s.facilities.push(factory, textile, depot, office);
+    const hedef = (yuzde) => ({ baseYear: ilkYil, reductionTarget: yuzde, targetYear: thisYear + 4 });
+    const hedefYok = { baseYear: '', reductionTarget: '', targetYear: '' };
+    const factory = Object.assign({ id: 'demo_fabrika', name: 'Gebze Üretim Tesisi', type: 'Fabrika', sector: 'Metal eşya imalatı', city: 'Kocaeli', employees: 420, area: 28000, productionUnit: 'ton ürün' }, hedef(30));
+    const textile = Object.assign({ id: 'demo_tekstil', name: 'Bursa Dokuma ve Boyahane', type: 'Fabrika', sector: 'Tekstil (dokuma, boya, apre)', city: 'Bursa', employees: 310, area: 21000, productionUnit: 'ton kumaş' }, hedef(35));
+    const food = Object.assign({ id: 'demo_gida', name: 'Konya Gıda Üretim Tesisi', type: 'Fabrika', sector: 'Un ve makarna üretimi', city: 'Konya', employees: 260, area: 24000, productionUnit: 'ton ürün' }, hedef(25));
+    const depot = Object.assign({ id: 'demo_depo', name: 'İzmir Soğuk Hava Deposu', type: 'Depo / Lojistik', sector: 'Gıda lojistiği', city: 'İzmir', employees: 85, area: 18000, productionUnit: 'palet' }, hedefYok);
+    const logistics = Object.assign({ id: 'demo_lojistik', name: 'Mersin Lojistik Merkezi', type: 'Depo / Lojistik', sector: 'Liman ve karayolu dağıtımı', city: 'Mersin', employees: 140, area: 32000, productionUnit: 'sevkiyat' }, hedef(20));
+    const hotel = Object.assign({ id: 'demo_otel', name: 'Antalya Sahil Oteli', type: 'Otel', sector: 'Turizm ve konaklama', city: 'Antalya', employees: 190, area: 26000, productionUnit: 'konaklama gecesi' }, hedef(30));
+    const office = Object.assign({ id: 'demo_ofis', name: 'İstanbul Genel Merkez', type: 'Şirket / Ofis', sector: 'Yönetim ve satış', city: 'İstanbul', employees: 135, area: 4200, productionUnit: '' }, hedef(40));
+    const branch = Object.assign({ id: 'demo_ankara', name: 'Ankara Bölge Ofisi', type: 'Şirket / Ofis', sector: 'Bölge satış ve servis', city: 'Ankara', employees: 60, area: 1800, productionUnit: '' }, hedefYok);
+    s.facilities.push(factory, textile, food, depot, logistics, hotel, office, branch);
     for (const f of s.facilities) s.records[f.id] = {};
 
     const rand = rng(42);
     const jitter = (v, p) => Math.round(v * (1 + (rand() - 0.5) * 2 * (p || 0.06)));
-    // Mevsimsellik: kış aylarında ısıtma, yaz aylarında soğutma yükü.
+    // Mevsimsellik: kış aylarında ısıtma, yaz aylarında soğutma yükü, turizmde yaz sezonu.
     const heating = [1.6, 1.5, 1.2, 0.8, 0.45, 0.25, 0.2, 0.2, 0.35, 0.7, 1.15, 1.5];
     const cooling = [0.9, 0.9, 0.95, 1.0, 1.05, 1.2, 1.3, 1.3, 1.1, 1.0, 0.92, 0.9];
+    const sezon = [0.25, 0.25, 0.35, 0.6, 0.85, 1.0, 1.0, 1.0, 0.9, 0.65, 0.3, 0.25];
+    const kayit = (f, y, m, production, activity, note) => {
+      s.records[f.id][Calc.monthKey(y, m)] = { production, note: note || '', activity };
+    };
 
-    for (let y = thisYear - 2; y <= thisYear; y++) {
-      const age = y - (thisYear - 2); // 0, 1, 2 — yıllar içinde iyileştirmeler
+    for (let y = ilkYil; y <= thisYear; y++) {
+      const yas = y - ilkYil; // 0..3: yıllar içinde iyileştirmeler
+      const a = yas - 1; // -1..2: ilk yıl biraz daha yüksek emisyon
       for (let m = 1; m <= 12; m++) {
         if (y === thisYear && m > lastFullMonth) break;
         const i = m - 1;
-        const prod = jitter(1150 * (1 + age * 0.04), 0.08);
-        const renewShare = [0.05, 0.18, 0.35][age];
-        const elecTotal = jitter(prod * 820 * cooling[i] * (1 - age * 0.04));
-        s.records[factory.id][Calc.monthKey(y, m)] = {
-          production: prod,
-          note: '',
-          activity: {
-            electricity: Math.round(elecTotal * (1 - renewShare)),
-            electricity_renewable: Math.round(elecTotal * renewShare),
-            natural_gas: jitter(prod * 95 * (0.5 + heating[i] * 0.5) * (1 - age * 0.06)),
-            diesel_stationary: jitter(age === 0 ? 900 : 600),
-            diesel_fleet: jitter(4200 * (1 - age * 0.05)),
-            lpg: jitter(1800),
-            ref_r410a: m === 7 ? (age === 0 ? 18 : 8) : 0,
-            ref_r404a: m === 8 && age === 0 ? 12 : 0,
-            water: jitter(prod * 3.1),
-            waste_landfill: jitter(38000 * (1 - age * 0.15)),
-            waste_recycled: jitter(52000 * (1 + age * 0.12)),
-            freight_road: jitter(prod * 420),
-            freight_sea: jitter(prod * 900),
-            commute: jitter(420 * 22 * 2 * 14),
-            flight_domestic: jitter(6000, 0.4),
-          },
-        };
-        const officeRenew = [0, 0.3, 0.6][age];
-        const officeElec = jitter(48000 * cooling[i] * (1 - age * 0.05));
-        s.records[office.id][Calc.monthKey(y, m)] = {
-          production: 0,
-          note: '',
-          activity: {
-            electricity: Math.round(officeElec * (1 - officeRenew)),
-            electricity_renewable: Math.round(officeElec * officeRenew),
-            natural_gas: jitter(5200 * heating[i] * (1 - age * 0.08)),
-            gasoline_fleet: jitter(1900 * (1 - age * 0.1)),
-            ref_r410a: m === 6 && age < 2 ? 6 : 0,
-            water: jitter(620),
-            waste_landfill: jitter(2600 * (1 - age * 0.2)),
-            waste_recycled: jitter(1500 * (1 + age * 0.2)),
-            paper: jitter(780 * (1 - age * 0.2)),
-            flight_domestic: jitter(42000 * (1 - age * 0.1), 0.3),
-            flight_international: jitter(95000 * (1 - age * 0.15), 0.35),
-            business_car: jitter(14000, 0.2),
-            commute: jitter(135 * 21 * 2 * 18 * (1 - age * 0.08)),
-          },
-        };
 
-        // Tekstil: buhar kazanında kömür kullanılıyor; son yıl kısmen doğal gaza geçilmiş.
-        const tProd = jitter(380 * (age === 2 && m === 8 ? 0.55 : 1), 0.07);
-        const coalShare = [1, 1, 0.45][age];
-        s.records[textile.id][Calc.monthKey(y, m)] = {
-          production: tProd,
-          note: age === 2 && m === 8 ? 'Yıllık bakım duruşu (2 hafta)' : age === 2 && m === 3 ? 'Kömür kazanı yerine doğal gaz kazanı devreye alındı' : '',
-          activity: {
-            electricity: jitter(tProd * 2100 * cooling[i]),
-            coal: Math.round(tProd * 0.16 * coalShare * (0.85 + heating[i] * 0.1) * 10) / 10,
-            natural_gas: jitter(tProd * (180 + (1 - coalShare) * 330) * (0.8 + heating[i] * 0.2)),
-            fuel_oil: age === 0 ? jitter(2500) : 0,
-            diesel_fleet: jitter(1600),
-            water: jitter(tProd * 95 * (1 - age * 0.07)),
-            waste_landfill: jitter(tProd * 55 * (1 - age * 0.1)),
-            waste_recycled: jitter(tProd * 40 * (1 + age * 0.15)),
-            freight_road: jitter(tProd * 300),
-            freight_sea: jitter(tProd * 2600),
-            commute: jitter(310 * 22 * 2 * 11),
-          },
-        };
+        // Metal fabrikası: çatı GES ve verimlilik yatırımları
+        const prod = jitter(1150 * (1 + a * 0.04), 0.08);
+        const renewShare = [0.03, 0.05, 0.18, 0.35][yas];
+        const elecTotal = jitter(prod * 820 * cooling[i] * (1 - a * 0.04));
+        kayit(factory, y, m, prod, {
+          electricity: Math.round(elecTotal * (1 - renewShare)),
+          electricity_renewable: Math.round(elecTotal * renewShare),
+          natural_gas: jitter(prod * 95 * (0.5 + heating[i] * 0.5) * (1 - a * 0.06)),
+          diesel_stationary: jitter(yas <= 1 ? 900 : 600),
+          diesel_fleet: jitter(4200 * (1 - a * 0.05)),
+          lpg: jitter(1800),
+          ref_r410a: m === 7 ? (yas <= 1 ? 18 : 8) : 0,
+          ref_r404a: m === 8 && yas <= 1 ? 12 : 0,
+          water: jitter(prod * 3.1),
+          waste_landfill: jitter(38000 * (1 - a * 0.15)),
+          waste_recycled: jitter(52000 * (1 + a * 0.12)),
+          freight_road: jitter(prod * 420),
+          freight_sea: jitter(prod * 900),
+          commute: jitter(420 * 22 * 2 * 14),
+          flight_domestic: jitter(6000, 0.4),
+        });
 
-        // Soğuk hava deposu: soğutma yükü yazın artıyor, R-404A kaçakları sık.
-        const pallets = jitter(5200 * (1 + age * 0.06), 0.1);
-        s.records[depot.id][Calc.monthKey(y, m)] = {
-          production: pallets,
-          note: m === 7 && age === 1 ? 'Kompresör arızası, soğutucu gaz takviyesi yapıldı' : '',
-          activity: {
-            electricity: jitter(98000 * cooling[i] * cooling[i]),
-            diesel_stationary: jitter(m >= 6 && m <= 8 ? 700 : 250),
-            diesel_fleet: jitter(9800 * (1 + age * 0.04)),
-            lpg: jitter(1300),
-            ref_r404a: m === 7 && age === 1 ? 34 : m % 4 === 0 ? 6 : 0,
-            water: jitter(240),
-            waste_landfill: jitter(5200),
-            waste_recycled: jitter(3100 * (1 + age * 0.1)),
-            freight_road: jitter(pallets * 120),
-            commute: jitter(85 * 24 * 2 * 15),
-          },
-        };
+        // Tekstil: buhar kazanında kömür; son yıl kısmen doğal gaza geçilmiş
+        const tProd = jitter(380 * (yas === 3 && m === 8 ? 0.55 : 1), 0.07);
+        const coalShare = [1, 1, 1, 0.45][yas];
+        kayit(textile, y, m, tProd, {
+          electricity: jitter(tProd * 2100 * cooling[i]),
+          coal: Math.round(tProd * 0.16 * coalShare * (0.85 + heating[i] * 0.1) * 10) / 10,
+          natural_gas: jitter(tProd * (180 + (1 - coalShare) * 330) * (0.8 + heating[i] * 0.2)),
+          fuel_oil: yas <= 1 ? jitter(2500) : 0,
+          diesel_fleet: jitter(1600),
+          water: jitter(tProd * 95 * (1 - a * 0.07)),
+          waste_landfill: jitter(tProd * 55 * (1 - a * 0.1)),
+          waste_recycled: jitter(tProd * 40 * (1 + a * 0.15)),
+          freight_road: jitter(tProd * 300),
+          freight_sea: jitter(tProd * 2600),
+          commute: jitter(310 * 22 * 2 * 11),
+        }, yas === 3 && m === 8 ? 'Yıllık bakım duruşu (2 hafta)' : yas === 3 && m === 3 ? 'Kömür kazanı yerine doğal gaz kazanı devreye alındı' : '');
+
+        // Gıda fabrikası: buhar için doğal gaz, soğuk depolama, organik atık
+        const gProd = jitter(2100 * (1 + a * 0.03), 0.07);
+        kayit(food, y, m, gProd, {
+          electricity: jitter(gProd * 310 * cooling[i] * (1 - a * 0.03)),
+          electricity_renewable: yas === 3 ? jitter(gProd * 40) : 0,
+          natural_gas: jitter(gProd * 58 * (0.75 + heating[i] * 0.25) * (1 - a * 0.04)),
+          diesel_fleet: jitter(5200),
+          ref_r404a: m === 6 || m === 12 ? (yas <= 1 ? 14 : 7) : 0,
+          water: jitter(gProd * 2.4),
+          waste_landfill: jitter(gProd * 9 * (1 - a * 0.12)),
+          waste_recycled: jitter(gProd * 6 * (1 + a * 0.15)),
+          freight_road: jitter(gProd * 380),
+          commute: jitter(260 * 22 * 2 * 16),
+        }, yas === 2 && m === 5 ? 'Atık su arıtma tesisi devreye alındı' : '');
+
+        // Soğuk hava deposu: soğutma yükü yazın artıyor, R-404A kaçakları sık
+        const pallets = jitter(5200 * (1 + a * 0.06), 0.1);
+        kayit(depot, y, m, pallets, {
+          electricity: jitter(98000 * cooling[i] * cooling[i]),
+          diesel_stationary: jitter(m >= 6 && m <= 8 ? 700 : 250),
+          diesel_fleet: jitter(9800 * (1 + a * 0.04)),
+          lpg: jitter(1300),
+          ref_r404a: m === 7 && yas === 2 ? 34 : m % 4 === 0 ? 6 : 0,
+          water: jitter(240),
+          waste_landfill: jitter(5200),
+          waste_recycled: jitter(3100 * (1 + a * 0.1)),
+          freight_road: jitter(pallets * 120),
+          commute: jitter(85 * 24 * 2 * 15),
+        }, m === 7 && yas === 2 ? 'Kompresör arızası, soğutucu gaz takviyesi yapıldı' : '');
+
+        // Lojistik merkezi: filo ve nakliye ağırlıklı; son yıllarda elektrikli forkliftler
+        const sevk = jitter(3400 * (1 + a * 0.05) * (m === 12 || m === 11 ? 1.15 : 1), 0.08);
+        kayit(logistics, y, m, sevk, {
+          electricity: jitter(42000 * cooling[i] * (1 + (yas >= 2 ? 0.15 : 0))),
+          diesel_fleet: jitter(sevk * 11.5 * (1 - a * 0.05)),
+          diesel_stationary: jitter(400),
+          lpg: yas >= 2 ? jitter(600) : jitter(2400),
+          water: jitter(180),
+          waste_landfill: jitter(3800 * (1 - a * 0.1)),
+          waste_recycled: jitter(5200 * (1 + a * 0.1)),
+          freight_road: jitter(sevk * 210),
+          freight_sea: jitter(sevk * 1500),
+          commute: jitter(140 * 24 * 2 * 18),
+        }, yas === 2 && m === 3 ? 'LPG forkliftler elektrikli forkliftlerle değiştirildi' : '');
+
+        // Otel: yaz sezonunda doluluk, klima ve sıcak su yükü
+        const gece = jitter(14500 * sezon[i] * (1 + a * 0.03), 0.06);
+        kayit(hotel, y, m, gece, {
+          electricity: jitter((90000 + gece * 30) * cooling[i] * (1 - a * 0.04)),
+          electricity_renewable: yas >= 2 ? jitter(gece * 6) : 0,
+          natural_gas: jitter(4000 + gece * 3.2),
+          lpg: jitter(gece * 0.35),
+          diesel_stationary: jitter(m >= 6 && m <= 9 ? 500 : 150),
+          ref_r410a: m === 5 ? (yas <= 1 ? 22 : 10) : 0,
+          water: jitter(gece * 0.65),
+          waste_landfill: jitter(gece * 1.4 * (1 - a * 0.12)),
+          waste_recycled: jitter(gece * 0.8 * (1 + a * 0.15)),
+          commute: jitter(190 * 26 * 2 * 12 * (0.5 + sezon[i] * 0.5)),
+        }, yas === 2 && m === 4 ? 'Güneş enerjili sıcak su sistemi kuruldu' : '');
+
+        // Genel merkez ofisi
+        const officeRenew = [0, 0, 0.3, 0.6][yas];
+        const officeElec = jitter(48000 * cooling[i] * (1 - a * 0.05));
+        kayit(office, y, m, 0, {
+          electricity: Math.round(officeElec * (1 - officeRenew)),
+          electricity_renewable: Math.round(officeElec * officeRenew),
+          natural_gas: jitter(5200 * heating[i] * (1 - a * 0.08)),
+          gasoline_fleet: jitter(1900 * (1 - a * 0.1)),
+          ref_r410a: m === 6 && yas < 3 ? 6 : 0,
+          water: jitter(620),
+          waste_landfill: jitter(2600 * (1 - a * 0.2)),
+          waste_recycled: jitter(1500 * (1 + a * 0.2)),
+          paper: jitter(780 * (1 - a * 0.2)),
+          flight_domestic: jitter(42000 * (1 - a * 0.1), 0.3),
+          flight_international: jitter(95000 * (1 - a * 0.15), 0.35),
+          business_car: jitter(14000, 0.2),
+          commute: jitter(135 * 21 * 2 * 18 * (1 - a * 0.08)),
+        });
+
+        // Bölge ofisi: küçük ofis, servis araçları
+        kayit(branch, y, m, 0, {
+          electricity: jitter(16000 * cooling[i]),
+          natural_gas: jitter(2100 * heating[i]),
+          diesel_fleet: jitter(2600 * (1 - a * 0.04)),
+          water: jitter(210),
+          waste_landfill: jitter(900),
+          waste_recycled: jitter(500 * (1 + a * 0.1)),
+          paper: jitter(260 * (1 - a * 0.1)),
+          flight_domestic: jitter(12000, 0.35),
+          commute: jitter(60 * 21 * 2 * 14),
+        });
       }
     }
     // Birkaç gerçekçi açıklama notu

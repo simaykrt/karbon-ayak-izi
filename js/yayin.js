@@ -9,6 +9,7 @@
   const Factors = isNode ? require('./factors.js') : global.KAI.Factors;
   const Calc = isNode ? require('./calc.js') : global.KAI.Calc;
   const Recommendations = isNode ? require('./recommendations.js') : global.KAI.Recommendations;
+  const Kullanicilar = isNode ? require('./kullanicilar.js') : global.KAI.Kullanicilar;
 
   const SURUM = 1;
   const round1 = (x) => Math.round(x * 10) / 10;
@@ -37,7 +38,8 @@
     return out;
   }
 
-  function olustur(state, now) {
+  /** kullanicilar verilmezse varsayılan demo hesaplar eklenir. */
+  function olustur(state, now, kullanicilar) {
     const tarih = now || new Date();
     const years = Calc.yearsWithData(state, Calc.ALL);
     const raporYili = years.length ? years[years.length - 1] : tarih.getFullYear();
@@ -61,6 +63,9 @@
         oneriler: Recommendations.generate(state, f.id, raporYili).map(oneriDonustur),
       })),
       genelOneriler: state.facilities.length > 1 ? Recommendations.generate(state, Calc.ALL, raporYili).map(oneriDonustur) : [],
+      kullanicilar: (kullanicilar || Kullanicilar.varsayilanKullanicilar()).map((k) => ({
+        id: k.id, adSoyad: k.adSoyad, eposta: k.eposta, rol: k.rol, tesisler: k.tesisler || [], aktif: !!k.aktif, sifreOzeti: k.sifreOzeti,
+      })),
     };
   }
 

@@ -4,11 +4,13 @@
 (function () {
   'use strict';
 
-  const { Factors, Calc, Recommendations, Storage, Yayin } = window.KAI;
+  const { Factors, Calc, Recommendations, Storage, Yayin, Kullanicilar } = window.KAI;
   const { SOURCES, SOURCE_MAP, SCOPES, MONTHS, MONTHS_SHORT, FACILITY_TYPES } = Factors;
   const ALL = Calc.ALL;
 
   let state = Storage.load();
+  let kullanicilar = Kullanicilar.yukle();
+  let oturum = null; // giriş yapmış kullanıcı
   const now = new Date();
   const ui = {
     view: 'dashboard',
@@ -220,16 +222,37 @@
 
   // ---------------------------------------------------------------- seçiciler
 
+  // ---------------------------------------------------------------- yetkiler
+
+  const rolBilgisi = () => (oturum ? Kullanicilar.ROLLER[oturum.rol] : null);
+  /** Oturumdaki kullanıcının görebildiği tesisler. */
+  function gorunurTesisler() {
+    if (!oturum) return [];
+    const ids = Kullanicilar.izinliTesisler(oturum, state.facilities);
+    return state.facilities.filter((f) => ids.includes(f.id));
+  }
+  /** "Tüm tesisler" toplamı yalnızca bütün tesisleri görebilen rollerde gösterilir. */
+  const tumuGorebilir = () => !!rolBilgisi() && rolBilgisi().tesis === 'hepsi';
+  const yonetici = () => !!oturum && oturum.rol === 'sistem_yoneticisi';
+  const sekmeIzinli = (v) => !!oturum && Kullanicilar.sekmeIzinli(oturum, v);
+
+  function kullanicilariKaydet(msg) {
+    if (!Kullanicilar.kaydet(kullanicilar)) toast('Uyarı: kullanıcılar kaydedilemedi.');
+    else if (msg) toast(msg);
+  }
+
   function refreshSelectors() {
     const fs = $('#facilitySelect');
-    const ids = state.facilities.map((f) => f.id);
-    if (ui.facility !== ALL && !ids.includes(ui.facility)) ui.facility = ids.length > 1 ? ALL : ids[0] || null;
-    if (ui.facility === ALL && ids.length < 2) ui.facility = ids[0] || null;
+    const gorunur = gorunurTesisler();
+    const ids = gorunur.map((f) => f.id);
+    const toplamVar = tumuGorebilir() && ids.length > 1;
+    if (ui.facility !== ALL && !ids.includes(ui.facility)) ui.facility = toplamVar ? ALL : ids[0] || null;
+    if (ui.facility === ALL && !toplamVar) ui.facility = ids[0] || null;
 
     let opts = '';
     if (!ids.length) opts = '<option value="">— Tesis yok —</option>';
-    if (ids.length > 1) opts += `<option value="${ALL}">Tüm tesisler (toplam)</option>`;
-    opts += state.facilities.map((f) => `<option value="${esc(f.id)}">${esc(f.name)}</option>`).join('');
+    if (toplamVar) opts += `<option value="${ALL}">Tüm tesisler (toplam)</option>`;
+    opts += gorunur.map((f) => `<option value="${esc(f.id)}">${esc(f.name)}</option>`).join('');
     fs.innerHTML = opts;
     fs.value = ui.facility || '';
 
@@ -249,9 +272,9 @@
 
   function renderDemoBanner() {
     const el = $('#demoBanner');
-    el.hidden = !state.demo;
-    if (!state.demo) return;
-    el.innerHTML = `<span><strong>Örnek veriler gösteriliyor.</strong> Dört tesisin son üç yılı uygulamayı denemeniz için hazır olarak yüklendi. Kendi verilerinizi girmeye başlamak için bu verileri temizleyin.</span>
+    el.hidden = !state.demo || !yonetici();
+    if (el.hidden) return;
+    el.innerHTML = `<span><strong>Örnek veriler gösteriliyor.</strong> Sekiz tesisin son dört yılı uygulamayı denemeniz için hazır olarak yüklendi. Kendi verilerinizi girmeye başlamak için bu verileri temizleyin.</span>
       <button class="btn secondary sm" id="clearDemo">Örnek verileri temizle</button>`;
     $('#clearDemo', el).addEventListener('click', async () => {
       if (!(await ask('Örnek tesisler ve tüm kayıtları silinecek. Ardından kendi tesisinizi ekleyebilirsiniz.', 'Temizle'))) return;
@@ -264,7 +287,13 @@
   }
 
   function render() {
+    const girisli = !!oturum;
+    document.body.classList.toggle('giris-modu', !girisli);
+    if (!girisli) ui.view = 'giris';
+    else if (!sekmeIzinli(ui.view)) ui.view = rolBilgisi().sekmeler[0];
+    renderOturumKutusu();
     renderDemoBanner();
+    $$('.tabs button').forEach((b) => { b.hidden = !sekmeIzinli(b.dataset.view); });
     $$('.tabs button').forEach((b) => b.classList.toggle('active', b.dataset.view === ui.view));
     $$('.view').forEach((v) => v.classList.toggle('active', v.id === 'view-' + ui.view));
     const fn = renderers[ui.view];
@@ -272,6 +301,13 @@
   }
 
   function emptyFacilities() {
+    if (!yonetici()) {
+      return `
+      <div class="card empty">
+        <h3>Size atanmış tesis yok</h3>
+        <p>Görebileceğiniz bir tesis tanımlanmamış. Tesis ataması için sistem yöneticisine başvurun.</p>
+      </div>`;
+    }
     return `
       <div class="card empty">
                 <h3>Henüz tesis eklenmemiş</h3>
@@ -305,7 +341,7 @@
   // ---------------------------------------------------------------- Panel
 
   renderers.dashboard = (root) => {
-    if (!state.facilities.length) {
+    if (!gorunurTesisler().length) {
       root.innerHTML = emptyFacilities();
       return bindCommon(root);
     }
@@ -473,7 +509,7 @@
   }
 
   renderers.entry = (root) => {
-    if (!state.facilities.length) {
+    if (!gorunurTesisler().length) {
       root.innerHTML = emptyFacilities();
       return bindCommon(root);
     }
@@ -482,7 +518,7 @@
         <div class="card">
           <h3>Veri girişi için bir tesis seçin</h3>
           <p>Veriler tesis bazında girilir. Hangi tesis için veri gireceksiniz?</p>
-          <div class="actions">${state.facilities.map((f) => `<button class="btn secondary" data-pick="${esc(f.id)}">${esc(f.name)}</button>`).join('')}</div>
+          <div class="actions">${gorunurTesisler().map((f) => `<button class="btn secondary" data-pick="${esc(f.id)}">${esc(f.name)}</button>`).join('')}</div>
         </div>`;
       $$('[data-pick]', root).forEach((b) => b.addEventListener('click', () => {
         ui.facility = b.dataset.pick;
@@ -724,7 +760,7 @@
   }
 
   renderers.compare = (root) => {
-    if (!state.facilities.length) {
+    if (!gorunurTesisler().length) {
       root.innerHTML = emptyFacilities();
       return bindCommon(root);
     }
@@ -758,7 +794,8 @@
     const MA = Calc.aggregateMonth(state, fid, ay, am);
     const MB = Calc.aggregateMonth(state, fid, by, bm);
 
-    const multi = state.facilities.length > 1;
+    const tesisler = gorunurTesisler();
+    const multi = tesisler.length > 1;
 
     root.innerHTML = `
       <div class="view-header">
@@ -801,7 +838,7 @@
         <div class="table-wrap" style="margin-top:1rem"><table>
           <thead><tr><th>Tesis</th><th>Tür</th><th class="num">Ay</th><th class="num">Kapsam 1</th><th class="num">Kapsam 2</th><th class="num">Kapsam 3</th><th class="num">Toplam (t)</th><th class="num">t / çalışan·yıl</th><th class="num">kg / m²·yıl</th><th class="num">Geçen yıla göre</th></tr></thead>
           <tbody>
-          ${state.facilities
+          ${tesisler
             .map((f) => {
               const a = Calc.aggregateYear(state, f.id, ui.year);
               const p = Calc.aggregateYear(state, f.id, ui.year - 1);
@@ -833,11 +870,11 @@
     });
 
     if (multi) {
-      const aggs = state.facilities.map((f) => Calc.aggregateYear(state, f.id, ui.year).total);
+      const aggs = tesisler.map((f) => Calc.aggregateYear(state, f.id, ui.year).total);
       makeChart('chFacilities', {
         type: 'bar',
         data: {
-          labels: state.facilities.map((f) => f.name),
+          labels: tesisler.map((f) => f.name),
           datasets: [1, 2, 3].map((s) => ({ label: SCOPES[s].name, data: aggs.map((a) => a.scopes[s] / 1000), backgroundColor: SCOPE_COLORS[s] })),
         },
         options: {
@@ -867,7 +904,7 @@
   }
 
   renderers.recommendations = (root) => {
-    if (!state.facilities.length) {
+    if (!gorunurTesisler().length) {
       root.innerHTML = emptyFacilities();
       return bindCommon(root);
     }
@@ -1025,6 +1062,8 @@
       const x = state.facilities.find((y) => y.id === b.dataset.fdel);
       if (!x || !(await ask(`"${x.name}" ve ${recordCount(x.id)} aylık kaydı kalıcı olarak silinsin mi?`, 'Tesisi sil'))) return;
       state.facilities = state.facilities.filter((y) => y.id !== x.id);
+      kullanicilar.forEach((k) => { k.tesisler = (k.tesisler || []).filter((id) => id !== x.id); });
+      kullanicilariKaydet();
       delete state.records[x.id];
       if (ui.editingFacility === x.id) ui.editingFacility = null;
       persist('Tesis silindi.');
@@ -1034,7 +1073,7 @@
   // ---------------------------------------------------------------- Rapor
 
   renderers.report = (root) => {
-    if (!state.facilities.length) {
+    if (!gorunurTesisler().length) {
       root.innerHTML = emptyFacilities();
       return bindCommon(root);
     }
@@ -1193,7 +1232,7 @@
     });
     $('#exportMobile', root).addEventListener('click', () => {
       if (!state.facilities.length) return toast('Yayınlanacak tesis yok.');
-      download('yayin.json', JSON.stringify(Yayin.olustur(state, new Date())), 'application/json');
+      download('yayin.json', JSON.stringify(Yayin.olustur(state, new Date(), kullanicilar)), 'application/json');
       toast('yayin.json oluşturuldu. Şimdi GitHub\'daki veri klasörüne yükleyin.');
     });
     $('#exportJson', root).addEventListener('click', () => {
@@ -1220,6 +1259,217 @@
       ui.facility = null;
       ui.cmp = {};
       persist('Tüm veriler silindi.');
+    });
+  };
+
+  // ---------------------------------------------------------------- Oturum
+
+  function renderOturumKutusu() {
+    const el = $('#oturumKutusu');
+    el.hidden = !oturum;
+    if (!oturum) return;
+    el.innerHTML = `
+      <div class="oturum-bilgi"><strong>${esc(oturum.adSoyad)}</strong><span>${esc(rolBilgisi().ad)}</span></div>
+      <button class="btn secondary sm" id="cikisBtn">Çıkış</button>`;
+    $('#cikisBtn', el).addEventListener('click', () => {
+      Kullanicilar.oturumSil();
+      oturum = null;
+      ui.view = 'dashboard';
+      render();
+      toast('Çıkış yapıldı.');
+    });
+  }
+
+  function oturumAc(k, hatirla) {
+    oturum = k;
+    Kullanicilar.oturumYaz(k.id, hatirla);
+    ui.view = rolBilgisi().sekmeler[0];
+    ui.facility = null;
+    ui.cmp = {};
+    ui.entryMonth = null;
+    refreshSelectors();
+    render();
+  }
+
+  renderers.giris = (root) => {
+    const roller = Kullanicilar.ROLLER;
+    const demo = Kullanicilar.varsayilanKullanicilar();
+    root.innerHTML = `
+      <div class="giris-sayfa">
+        <form class="card giris-kart" id="girisForm" autocomplete="on" novalidate>
+          <h2>Giriş yap</h2>
+          <p class="muted">Karbon Ayak İzi yönetim paneline hesabınızla giriş yapın.</p>
+          <label class="field">E-posta<input type="email" id="girisEposta" name="eposta" autocomplete="username" required /></label>
+          <label class="field">Şifre
+            <span class="input-unit"><input type="password" id="girisSifre" name="sifre" autocomplete="current-password" required />
+            <button type="button" class="btn secondary sm" id="sifreGoster">Göster</button></span>
+          </label>
+          <label class="onay"><input type="checkbox" id="girisHatirla" /> Beni hatırla</label>
+          <p class="giris-hata" id="girisHata" role="alert" hidden></p>
+          <button class="btn" type="submit" id="girisBtn">Giriş yap</button>
+        </form>
+        <div class="card giris-demo">
+          <h3>Demo hesaplar</h3>
+          <p class="muted">Tüm demo hesapların şifresi <strong class="mono">123456</strong>. Bir satıra tıklayınca bilgiler forma yazılır.</p>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Rol</th><th>Kullanıcı</th><th>E-posta</th></tr></thead>
+            <tbody>${demo.map((k) => `<tr class="tiklanir" data-eposta="${esc(k.eposta)}"><td>${esc(roller[k.rol].ad)}</td><td>${esc(k.adSoyad)}</td><td class="mono">${esc(k.eposta)}</td></tr>`).join('')}</tbody>
+          </table></div>
+        </div>
+      </div>`;
+    const form = $('#girisForm', root);
+    const hata = $('#girisHata', root);
+    $('#sifreGoster', root).addEventListener('click', (e) => {
+      const i = $('#girisSifre', root);
+      i.type = i.type === 'password' ? 'text' : 'password';
+      e.target.textContent = i.type === 'password' ? 'Göster' : 'Gizle';
+    });
+    $$('[data-eposta]', root).forEach((tr) => tr.addEventListener('click', () => {
+      $('#girisEposta', root).value = tr.dataset.eposta;
+      $('#girisSifre', root).value = '123456';
+      hata.hidden = true;
+    }));
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const eposta = $('#girisEposta', root).value;
+      const sifre = $('#girisSifre', root).value;
+      if (!eposta.trim() || !sifre) {
+        hata.textContent = 'E-posta ve şifre girin.';
+        hata.hidden = false;
+        return;
+      }
+      $('#girisBtn', root).disabled = true;
+      const sonuc = await Kullanicilar.girisDogrula(kullanicilar, eposta, sifre);
+      $('#girisBtn', root).disabled = false;
+      if (sonuc.hata) {
+        hata.textContent = sonuc.hata;
+        hata.hidden = false;
+        return;
+      }
+      oturumAc(sonuc.kullanici, $('#girisHatirla', root).checked);
+      toast(`Hoş geldiniz, ${sonuc.kullanici.adSoyad}.`);
+    });
+    $('#girisEposta', root).focus();
+  };
+
+  // ---------------------------------------------------------------- Kullanıcılar (sistem yöneticisi)
+
+  renderers.users = (root) => {
+    const roller = Kullanicilar.ROLLER;
+    const tesisAdi = (id) => (state.facilities.find((f) => f.id === id) || {}).name || id;
+    const duzenlenen = ui.editingUser ? kullanicilar.find((k) => k.id === ui.editingUser) : null;
+    const k = duzenlenen || { rol: 'personel', tesisler: [], aktif: true };
+    const sayilar = Object.keys(roller).map((r) => `${roller[r].ad}: ${kullanicilar.filter((x) => x.rol === r).length}`).join(' · ');
+
+    root.innerHTML = `
+      <div class="view-header">
+        <div><h2>Kullanıcılar ve roller</h2><p>Hesapları, rolleri ve tesis atamalarını buradan yönetin. ${esc(sayilar)}</p></div>
+      </div>
+      <div class="grid kullanici-grid">
+        <div class="card">
+          <h3>Kayıtlı kullanıcılar (${kullanicilar.length})</h3>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Kullanıcı</th><th>Rol</th><th>Tesisler</th><th>Durum</th><th></th></tr></thead>
+            <tbody>${kullanicilar.map((x) => `<tr class="${x.aktif ? '' : 'muted'}">
+              <td><strong>${esc(x.adSoyad)}</strong>${x.id === oturum.id ? ' <span class="pill ok">siz</span>' : ''}<br/><span class="muted mono" style="font-size:.78rem">${esc(x.eposta)}</span></td>
+              <td>${esc(roller[x.rol] ? roller[x.rol].ad : x.rol)}</td>
+              <td style="font-size:.82rem">${roller[x.rol] && roller[x.rol].tesis === 'hepsi' ? '<span class="muted">Tümü</span>' : (x.tesisler || []).map((id) => `<span class="cip">${esc(tesisAdi(id))}</span>`).join(' ') || '<span class="muted">—</span>'}</td>
+              <td>${x.aktif ? '<span class="pill ok">Aktif</span>' : '<span class="pill">Pasif</span>'}</td>
+              <td><button class="btn secondary sm" data-kedit="${esc(x.id)}">Düzenle</button></td>
+            </tr>`).join('')}</tbody>
+          </table></div>
+          <div class="actions" style="margin-top:1rem">
+            <button class="btn secondary sm" id="varsayilanKullanicilar">Demo hesapları geri yükle</button>
+          </div>
+        </div>
+        <form class="card" id="kullaniciForm" autocomplete="off" novalidate>
+          <h3>${duzenlenen ? 'Kullanıcıyı düzenle' : 'Yeni kullanıcı ekle'}</h3>
+          <div class="form-grid">
+            <label class="field">Ad soyad *<input id="kAd" maxlength="60" value="${esc(k.adSoyad)}" /></label>
+            <label class="field">E-posta *<input id="kEposta" type="email" maxlength="80" value="${esc(k.eposta)}" /></label>
+            <label class="field">Şifre ${duzenlenen ? '' : '*'}<input id="kSifre" type="password" minlength="6" autocomplete="new-password" placeholder="${duzenlenen ? 'Değiştirmek için yazın' : 'En az 6 karakter'}" /></label>
+            <label class="field">Rol *<select id="kRol">${Object.keys(roller).map((r) => `<option value="${r}" ${r === k.rol ? 'selected' : ''}>${esc(roller[r].ad)}</option>`).join('')}</select>
+              <span class="unit" id="kRolAciklama"></span></label>
+          </div>
+          <fieldset id="kTesisler" style="margin-top:1rem">
+            <legend>Atanan tesisler</legend>
+            <div class="tesis-secim">${state.facilities.map((f) => `<label class="onay"><input type="checkbox" value="${esc(f.id)}" ${(k.tesisler || []).includes(f.id) ? 'checked' : ''}/> ${esc(f.name)}</label>`).join('') || '<span class="muted">Önce tesis ekleyin.</span>'}</div>
+          </fieldset>
+          <label class="onay"><input type="checkbox" id="kAktif" ${k.aktif ? 'checked' : ''} ${duzenlenen && duzenlenen.id === oturum.id ? 'disabled' : ''}/> Hesap aktif</label>
+          <p class="giris-hata" id="kHata" role="alert" hidden></p>
+          <div class="actions" style="margin-top:1rem">
+            <button class="btn" type="submit">${duzenlenen ? 'Değişiklikleri kaydet' : '+ Kullanıcı ekle'}</button>
+            ${duzenlenen ? '<button class="btn secondary" type="button" id="kVazgec">Vazgeç</button>' : ''}
+            ${duzenlenen && duzenlenen.id !== oturum.id ? '<button class="btn danger" type="button" id="kSil">Kullanıcıyı sil</button>' : ''}
+          </div>
+        </form>
+      </div>`;
+
+    const form = $('#kullaniciForm', root);
+    const hata = $('#kHata', root);
+    const rolGuncelle = () => {
+      const rol = roller[$('#kRol', root).value];
+      $('#kRolAciklama', root).textContent = rol.aciklama;
+      $('#kTesisler', root).hidden = rol.tesisSayisi[1] === 0;
+      $('#kTesisler legend', root).textContent = rol.tesisSayisi[1] === 1 ? 'Atanan tesis (1 adet)' : 'Atanan tesisler (en az 1)';
+    };
+    rolGuncelle();
+    $('#kRol', root).addEventListener('change', rolGuncelle);
+    $$('[data-kedit]', root).forEach((b) => b.addEventListener('click', () => { ui.editingUser = b.dataset.kedit; render(); }));
+    const vazgec = $('#kVazgec', root);
+    if (vazgec) vazgec.addEventListener('click', () => { ui.editingUser = null; render(); });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const rol = $('#kRol', root).value;
+      const yeni = {
+        id: duzenlenen ? duzenlenen.id : 'k_' + Storage.uid().slice(2),
+        adSoyad: $('#kAd', root).value.trim(),
+        eposta: $('#kEposta', root).value.trim().toLowerCase(),
+        rol,
+        tesisler: roller[rol].tesisSayisi[1] === 0 ? [] : $$('#kTesisler input:checked', root).map((i) => i.value),
+        aktif: $('#kAktif', root).checked || (duzenlenen && duzenlenen.id === oturum.id),
+        sifreOzeti: duzenlenen ? duzenlenen.sifreOzeti : '',
+      };
+      const sifre = $('#kSifre', root).value;
+      const goster = (m) => { hata.textContent = m; hata.hidden = false; };
+      if (!duzenlenen && sifre.length < 6) return goster('Şifre en az 6 karakter olmalıdır.');
+      if (sifre && sifre.length < 6) return goster('Şifre en az 6 karakter olmalıdır.');
+      // Şifre özeti e-postayı da içerdiği için e-posta değişince yeni şifre gerekir.
+      if (duzenlenen && yeni.eposta !== duzenlenen.eposta.toLowerCase() && !sifre) return goster('E-posta değiştiğinde yeni bir şifre belirleyin.');
+      const sorun = Kullanicilar.kullaniciKontrol(yeni, kullanicilar, state.facilities.map((f) => f.id));
+      if (sorun) return goster(sorun);
+      if (sifre) yeni.sifreOzeti = await Kullanicilar.sifreOzeti(yeni.eposta, sifre);
+      if (duzenlenen) Object.assign(duzenlenen, yeni);
+      else kullanicilar.push(yeni);
+      if (duzenlenen && duzenlenen.id === oturum.id) oturum = duzenlenen;
+      ui.editingUser = null;
+      kullanicilariKaydet(duzenlenen ? 'Kullanıcı güncellendi.' : 'Kullanıcı eklendi.');
+      refreshSelectors();
+      render();
+    });
+
+    const sil = $('#kSil', root);
+    if (sil) sil.addEventListener('click', async () => {
+      const baskaYonetici = kullanicilar.some((x) => x.id !== duzenlenen.id && x.rol === 'sistem_yoneticisi' && x.aktif);
+      if (duzenlenen.rol === 'sistem_yoneticisi' && !baskaYonetici) return toast('En az bir aktif sistem yöneticisi kalmalıdır.');
+      if (!(await ask(`"${duzenlenen.adSoyad}" kullanıcısı silinsin mi?`, 'Kullanıcıyı sil'))) return;
+      kullanicilar = kullanicilar.filter((x) => x.id !== duzenlenen.id);
+      ui.editingUser = null;
+      kullanicilariKaydet('Kullanıcı silindi.');
+      render();
+    });
+
+    $('#varsayilanKullanicilar', root).addEventListener('click', async () => {
+      if (!(await ask('Kullanıcı listesi demo hesaplarla değiştirilecek. Eklediğiniz kullanıcılar silinir. Devam edilsin mi?', 'Geri yükle'))) return;
+      kullanicilar = Kullanicilar.varsayilanKullanicilar();
+      const ben = kullanicilar.find((x) => x.id === oturum.id && x.aktif);
+      kullanicilariKaydet('Demo hesaplar geri yüklendi.');
+      if (ben) oturum = ben;
+      else { Kullanicilar.oturumSil(); oturum = null; }
+      ui.editingUser = null;
+      refreshSelectors();
+      render();
     });
   };
 
@@ -1251,12 +1501,19 @@
     } catch (e) {
       seen = false;
     }
-    if (!state.facilities.length && !seen) {
+    // Eski sürümün 4 tesisli örnek verisi, demo hesapların atandığı 8 tesisli sürüme yükseltilir.
+    const eskiOrnek = state.demo && !state.facilities.some((f) => f.id === 'demo_gida');
+    if ((!state.facilities.length && !seen) || eskiOrnek) {
       state = Storage.demoState(now);
       ui.facility = Calc.ALL;
       Storage.save(state);
     }
-    if (!state.facilities.length) ui.view = 'dashboard';
+    // "Beni hatırla" ile açık kalan oturum
+    const kayitliId = Kullanicilar.oturumOku();
+    const kayitli = kullanicilar.find((k) => k.id === kayitliId && k.aktif);
+    if (kayitli) oturum = kayitli;
+    else Kullanicilar.oturumSil();
+    if (oturum) ui.view = rolBilgisi().sekmeler[0];
     refreshSelectors();
     render();
   }

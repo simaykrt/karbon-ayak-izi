@@ -26,6 +26,7 @@
         <p>Sera gazı envanteri · Kapsam 1, 2, 3</p>
       </div>
     </div>
+    <div class="oturum" id="oturumKutusu" hidden></div>
     <div class="selectors">
       <label>Tesis
         <select id="facilitySelect"></select>
@@ -44,10 +45,12 @@
     <button data-view="facilities">Tesisler</button>
     <button data-view="report">Rapor</button>
     <button data-view="settings">Faktörler ve Ayarlar</button>
+    <button data-view="users">Kullanıcılar</button>
   </nav>
 
   <main>
     <div id="demoBanner" class="notice demo-banner" hidden></div>
+    <section id="view-giris" class="view"></section>
     <section id="view-dashboard" class="view active"></section>
     <section id="view-entry" class="view"></section>
     <section id="view-compare" class="view"></section>
@@ -55,6 +58,7 @@
     <section id="view-facilities" class="view"></section>
     <section id="view-report" class="view"></section>
     <section id="view-settings" class="view"></section>
+    <section id="view-users" class="view"></section>
   </main>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -68,6 +72,7 @@
   <script src="js/calc.js"></script>
   <script src="js/recommendations.js"></script>
   <script src="js/storage.js"></script>
+  <script src="js/kullanicilar.js"></script>
   <script src="js/yayin.js"></script>
   <script src="js/app.js" defer></script>
 </body>
