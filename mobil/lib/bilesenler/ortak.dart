@@ -4,8 +4,14 @@ library;
 import 'package:flutter/material.dart';
 
 import '../veri/durum.dart';
+import '../veri/kullanici.dart';
 
 const anaRenk = Color(0xFF2F6B4F);
+const grafit = Color(0xFF1F2528);
+const zemin = Color(0xFFF3F5F2);
+const cizgi = Color(0xFFD9DDD7);
+const soluk = Color(0xFF5D6862);
+const acikYesil = Color(0xFFE3EEE7);
 const kapsamRenkleri = [Color(0xFFB85A3E), Color(0xFFC7962C), Color(0xFF4C7196)];
 const kapsamAdlari = ['Kapsam 1', 'Kapsam 2', 'Kapsam 3'];
 const iyiRenk = Color(0xFF2F6B4F);
@@ -79,43 +85,111 @@ class Bolum extends StatelessWidget {
 
 /// Ekranların üstündeki tesis ve yıl seçicisi
 class SeciciSerit extends StatelessWidget {
-  const SeciciSerit({super.key});
+  const SeciciSerit({super.key, this.tesisGoster = true});
+
+  /// Tesis detay sayfasında tesis zaten belli olduğu için yalnızca yıl seçilir.
+  final bool tesisGoster;
 
   @override
   Widget build(BuildContext context) {
     final durum = DurumKapsami.of(context);
     final yayin = durum.yayin!;
+    final tesisler = durum.gorunurTesisler;
+    const kenar = InputDecoration(labelText: 'Tesis', isDense: true, border: OutlineInputBorder());
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       child: Row(
         children: [
-          Expanded(
-            child: DropdownButtonFormField<String?>(
-              key: ValueKey('tesis-${durum.seciliTesisId}'),
-              initialValue: durum.seciliTesisId,
-              isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Tesis', isDense: true, border: OutlineInputBorder()),
-              items: [
-                if (yayin.tesisler.length > 1)
-                  const DropdownMenuItem<String?>(value: null, child: Text('Tüm tesisler')),
-                for (final t in yayin.tesisler)
-                  DropdownMenuItem<String?>(value: t.id, child: Text(t.ad, overflow: TextOverflow.ellipsis)),
-              ],
-              onChanged: durum.tesisSec,
+          if (tesisGoster)
+            Expanded(
+              // Tek tesisi olan kullanıcı için seçim yapılmaz, tesis adı gösterilir.
+              child: tesisler.length == 1
+                  ? InputDecorator(decoration: kenar, child: Text(tesisler.first.ad, overflow: TextOverflow.ellipsis))
+                  : DropdownButtonFormField<String?>(
+                      key: ValueKey('tesis-${durum.gorunen?.id}-${durum.seciliTesisId}'),
+                      initialValue: durum.seciliTesisId,
+                      isExpanded: true,
+                      decoration: kenar,
+                      items: [
+                        DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text(durum.gorunen!.rol.tumTesisler ? 'Tüm tesisler' : 'Atanan tüm tesisler'),
+                        ),
+                        for (final t in tesisler)
+                          DropdownMenuItem<String?>(value: t.id, child: Text(t.ad, overflow: TextOverflow.ellipsis)),
+                      ],
+                      onChanged: durum.tesisSec,
+                    ),
             ),
-          ),
-          const SizedBox(width: 12),
+          if (tesisGoster) const SizedBox(width: 12),
           SizedBox(
-            width: 104,
+            width: 120,
             child: DropdownButtonFormField<int>(
               key: ValueKey('yil-${durum.yil}'),
               initialValue: durum.yil,
+              isExpanded: true,
               decoration: const InputDecoration(labelText: 'Yıl', isDense: true, border: OutlineInputBorder()),
               items: [for (final y in yayin.yillar) DropdownMenuItem(value: y, child: Text('$y'))],
               onChanged: (y) => durum.yilSec(y!),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+Color rolRengi(Rol rol) => switch (rol) {
+      Rol.sistemYoneticisi => grafit,
+      Rol.genelMudur => anaRenk,
+      Rol.tesisMuduru => kapsamRenkleri[2],
+      Rol.personel => kapsamRenkleri[1],
+    };
+
+/// Kullanıcının baş harfleri, rol rengiyle
+class RolAvatari extends StatelessWidget {
+  const RolAvatari(this.kullanici, {super.key, this.yaricap = 20});
+
+  final Kullanici kullanici;
+  final double yaricap;
+
+  @override
+  Widget build(BuildContext context) {
+    final renk = kullanici.aktif ? rolRengi(kullanici.rol) : soluk;
+    return CircleAvatar(
+      radius: yaricap,
+      backgroundColor: renk == grafit ? const Color(0xFF3A4246) : renk,
+      child: Text(kullanici.basHarfler,
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: yaricap * 0.7)),
+    );
+  }
+}
+
+/// Web uygulamasıyla aynı logo: koyu kare içinde azalan üç çubuk.
+class Logo extends StatelessWidget {
+  const Logo({super.key, this.boyut = 32, this.renk = grafit});
+
+  final double boyut;
+  final Color renk;
+
+  @override
+  Widget build(BuildContext context) {
+    final b = boyut / 32;
+    Widget cubuk(double h, double opaklik) => Container(
+          width: 4 * b,
+          height: h * b,
+          margin: EdgeInsets.symmetric(horizontal: 1 * b),
+          color: Colors.white.withValues(alpha: opaklik),
+        );
+    return Container(
+      width: boyut,
+      height: boyut,
+      padding: EdgeInsets.only(bottom: 8 * b),
+      decoration: BoxDecoration(color: renk, borderRadius: BorderRadius.circular(6 * b)),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [cubuk(15, 1), cubuk(10, 0.75), cubuk(6, 0.5)],
       ),
     );
   }

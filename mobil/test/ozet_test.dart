@@ -10,7 +10,7 @@ void main() {
   final yayin = Yayin.fromJson(jsonDecode(File('assets/ornek_yayin.json').readAsStringSync()) as Map<String, dynamic>);
 
   test('örnek yayın dosyası okunur', () {
-    expect(yayin.tesisler, hasLength(4));
+    expect(yayin.tesisler, hasLength(8));
     expect(yayin.yillar.first, yayin.raporYili);
     expect(yayin.kaynaklar['electricity']!.kapsam, 2);
     expect(yayin.genelOneriler, isNotEmpty);

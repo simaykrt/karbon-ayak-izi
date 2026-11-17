@@ -3,6 +3,8 @@
 /// Tüm emisyon değerleri kg CO2e cinsindendir.
 library;
 
+import 'kullanici.dart';
+
 double _sayi(dynamic v) => v is num ? v.toDouble() : 0;
 
 class KaynakBilgisi {
@@ -122,6 +124,7 @@ class Yayin {
     required this.kaynaklar,
     required this.tesisler,
     required this.genelOneriler,
+    this.kullanicilar = const [],
   });
 
   factory Yayin.fromJson(Map<String, dynamic> j) => Yayin(
@@ -132,6 +135,8 @@ class Yayin {
         tesisler: (j['tesisler'] as List).map((t) => Tesis.fromJson(t as Map<String, dynamic>)).toList(),
         genelOneriler:
             ((j['genelOneriler'] as List?) ?? []).map((o) => Oneri.fromJson(o as Map<String, dynamic>)).toList(),
+        kullanicilar:
+            ((j['kullanicilar'] as List?) ?? []).map((k) => Kullanici.fromJson(k as Map<String, dynamic>)).toList(),
       );
 
   final DateTime olusturma;
@@ -143,6 +148,9 @@ class Yayin {
 
   /// Tüm tesisler birlikte değerlendirildiğinde çıkan öneriler
   final List<Oneri> genelOneriler;
+
+  /// Web uygulamasında tanımlanan kullanıcılar
+  final List<Kullanici> kullanicilar;
 
   /// Verisi olan yıllar, yeniden eskiye
   List<int> get yillar {

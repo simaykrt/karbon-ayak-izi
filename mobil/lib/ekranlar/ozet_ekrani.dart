@@ -3,23 +3,27 @@ import 'package:flutter/material.dart';
 
 import '../bilesenler/ortak.dart';
 import '../veri/durum.dart';
+import '../veri/model.dart';
 import '../veri/ozet.dart';
 
 /// Seçili tesis ve yılın özet göstergeleri, aylık grafik ve en büyük kaynaklar.
 class OzetEkrani extends StatelessWidget {
-  const OzetEkrani({super.key});
+  const OzetEkrani({super.key, this.sabitTesis});
+
+  /// Tesis detay sayfasında gösterilen tesis; null ise seçicideki tesisler.
+  final Tesis? sabitTesis;
 
   @override
   Widget build(BuildContext context) {
     final durum = DurumKapsami.of(context);
     final yayin = durum.yayin!;
-    final tesisler = durum.seciliTesisler;
+    final tesisler = sabitTesis != null ? [sabitTesis!] : durum.seciliTesisler;
     final buYil = yilOzeti(tesisler, durum.yil);
     final gecenYil = yilOzeti(tesisler, durum.yil - 1);
     final kiyas = ayniAylarKarsilastir(buYil, gecenYil);
     final toplam = buYil.toplam;
     final calisan = tesisler.fold<int>(0, (s, t) => s + t.calisan);
-    final tesis = durum.seciliTesis;
+    final tesis = sabitTesis ?? durum.seciliTesis;
     final hedef = tesis == null ? null : hedefDurumu(tesis, durum.yil);
 
     return RefreshIndicator(
@@ -27,7 +31,7 @@ class OzetEkrani extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.only(bottom: 24),
         children: [
-          const SeciciSerit(),
+          SeciciSerit(tesisGoster: sabitTesis == null),
           if (!toplam.veriVar)
             BosDurum('${durum.yil} yılı için veri yok.')
           else ...[

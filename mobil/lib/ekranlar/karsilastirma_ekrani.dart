@@ -23,7 +23,7 @@ class _KarsilastirmaEkraniState extends State<KarsilastirmaEkrani> {
   @override
   Widget build(BuildContext context) {
     final durum = DurumKapsami.of(context);
-    final cokTesis = durum.yayin!.tesisler.length > 1;
+    final cokTesis = durum.gorunurTesisler.length > 1;
     if (!cokTesis && gorunum == _Gorunum.tesisler) gorunum = _Gorunum.yillik;
 
     return RefreshIndicator(
@@ -170,7 +170,7 @@ class _KarsilastirmaEkraniState extends State<KarsilastirmaEkrani> {
 
   Widget _tesisler(UygulamaDurumu durum) {
     final satirlar = [
-      for (final Tesis t in durum.yayin!.tesisler)
+      for (final Tesis t in durum.gorunurTesisler)
         (
           tesis: t,
           buYil: yilOzeti([t], durum.yil),

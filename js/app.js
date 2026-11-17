@@ -1292,13 +1292,10 @@
   }
 
   renderers.giris = (root) => {
-    const roller = Kullanicilar.ROLLER;
-    const demo = Kullanicilar.varsayilanKullanicilar();
     root.innerHTML = `
       <div class="giris-sayfa">
         <form class="card giris-kart" id="girisForm" autocomplete="on" novalidate>
-          <h2>Giriş yap</h2>
-          <p class="muted">Karbon Ayak İzi yönetim paneline hesabınızla giriş yapın.</p>
+          <h2>Giriş</h2>
           <label class="field">E-posta<input type="email" id="girisEposta" name="eposta" autocomplete="username" required /></label>
           <label class="field">Şifre
             <span class="input-unit"><input type="password" id="girisSifre" name="sifre" autocomplete="current-password" required />
@@ -1308,14 +1305,6 @@
           <p class="giris-hata" id="girisHata" role="alert" hidden></p>
           <button class="btn" type="submit" id="girisBtn">Giriş yap</button>
         </form>
-        <div class="card giris-demo">
-          <h3>Demo hesaplar</h3>
-          <p class="muted">Tüm demo hesapların şifresi <strong class="mono">123456</strong>. Bir satıra tıklayınca bilgiler forma yazılır.</p>
-          <div class="table-wrap"><table>
-            <thead><tr><th>Rol</th><th>Kullanıcı</th><th>E-posta</th></tr></thead>
-            <tbody>${demo.map((k) => `<tr class="tiklanir" data-eposta="${esc(k.eposta)}"><td>${esc(roller[k.rol].ad)}</td><td>${esc(k.adSoyad)}</td><td class="mono">${esc(k.eposta)}</td></tr>`).join('')}</tbody>
-          </table></div>
-        </div>
       </div>`;
     const form = $('#girisForm', root);
     const hata = $('#girisHata', root);
@@ -1324,11 +1313,6 @@
       i.type = i.type === 'password' ? 'text' : 'password';
       e.target.textContent = i.type === 'password' ? 'Göster' : 'Gizle';
     });
-    $$('[data-eposta]', root).forEach((tr) => tr.addEventListener('click', () => {
-      $('#girisEposta', root).value = tr.dataset.eposta;
-      $('#girisSifre', root).value = '123456';
-      hata.hidden = true;
-    }));
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const eposta = $('#girisEposta', root).value;

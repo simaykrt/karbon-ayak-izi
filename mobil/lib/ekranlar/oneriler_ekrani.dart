@@ -12,8 +12,23 @@ class OnerilerEkrani extends StatelessWidget {
   Widget build(BuildContext context) {
     final durum = DurumKapsami.of(context);
     final yayin = durum.yayin!;
-    final tesis = durum.seciliTesis ?? (yayin.tesisler.length == 1 ? yayin.tesisler.first : null);
-    final oneriler = tesis?.oneriler ?? yayin.genelOneriler;
+    final tesis = durum.seciliTesis;
+    // Tüm tesisleri gören roller şirket geneli önerileri görür; birden fazla
+    // tesise atanmış kullanıcı ise kendi tesislerinin önerilerini görür.
+    final oneriler = tesis?.oneriler ??
+        (durum.gorunen!.rol.tumTesisler
+            ? yayin.genelOneriler
+            : [
+                for (final t in durum.gorunurTesisler)
+                  for (final o in t.oneriler)
+                    Oneri(
+                        baslik: o.baslik,
+                        metin: o.metin,
+                        kategori: t.ad,
+                        oncelik: o.oncelik,
+                        tur: o.tur,
+                        potansiyel: o.potansiyel),
+              ]);
     final eylemler = oneriler.where((o) => o.tur == 'action').toList();
     final uyarilar = oneriler.where((o) => o.tur != 'action').toList();
     final potansiyel = eylemler.fold<double>(0, (s, o) => s + (o.potansiyel ?? 0));
