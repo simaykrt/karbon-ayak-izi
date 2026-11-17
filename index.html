@@ -6,10 +6,7 @@
   <title>Karbon Ayak İzi</title>
   <meta name="description" content="Şirket, fabrika ve kurumlar için aylık/yıllık karbon ayak izi hesaplama, karşılaştırma ve azaltım önerileri." />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232f6b4f'/%3E%3Crect x='8' y='9' width='4' height='15' fill='%23fff'/%3E%3Crect x='14' y='14' width='4' height='10' fill='%23fff'/%3E%3Crect x='20' y='18' width='4' height='6' fill='%23fff'/%3E%3C/svg%3E" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" />
-  <link rel="stylesheet" href="css/styles.css?v=2" />
+  <link rel="stylesheet" href="css/styles.css?v=3" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
 </head>
 <body>
@@ -21,10 +18,7 @@
         <rect x="14" y="14" width="4" height="10" fill="currentColor" opacity=".75" />
         <rect x="20" y="18" width="4" height="6" fill="currentColor" opacity=".5" />
       </svg>
-      <div>
-        <h1>Karbon Ayak İzi</h1>
-        <p>Sera gazı envanteri · Kapsam 1, 2, 3</p>
-      </div>
+      <h1>Karbon Ayak İzi</h1>
     </div>
     <div class="oturum" id="oturumKutusu" hidden></div>
     <div class="selectors">
@@ -43,37 +37,31 @@
     <button data-view="compare">Karşılaştırma</button>
     <button data-view="recommendations">Öneriler</button>
     <button data-view="facilities">Tesisler</button>
-    <button data-view="report">Rapor</button>
-    <button data-view="settings">Faktörler ve Ayarlar</button>
+    <button data-view="settings">Ayarlar</button>
     <button data-view="users">Kullanıcılar</button>
   </nav>
 
   <main>
-    <div id="demoBanner" class="notice demo-banner" hidden></div>
     <section id="view-giris" class="view"></section>
     <section id="view-dashboard" class="view active"></section>
     <section id="view-entry" class="view"></section>
     <section id="view-compare" class="view"></section>
     <section id="view-recommendations" class="view"></section>
     <section id="view-facilities" class="view"></section>
-    <section id="view-report" class="view"></section>
     <section id="view-settings" class="view"></section>
     <section id="view-users" class="view"></section>
   </main>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <footer class="footer">
-    Hesaplamalar GHG Protocol yaklaşımına göre yapılır. Varsayılan emisyon faktörleri yaklaşık değerlerdir;
-    resmî raporlama için güncel ulusal faktörleri "Faktörler ve Ayarlar" sayfasından girin. Veriler yalnızca bu tarayıcıda saklanır.
-  </footer>
+  <footer class="footer">Karbon Ayak İzi · Mobil Uygulama Programlama dersi projesi</footer>
 
-  <script src="js/factors.js?v=2"></script>
-  <script src="js/calc.js?v=2"></script>
-  <script src="js/recommendations.js?v=2"></script>
-  <script src="js/storage.js?v=2"></script>
-  <script src="js/kullanicilar.js?v=2"></script>
-  <script src="js/yayin.js?v=2"></script>
-  <script src="js/app.js?v=2" defer></script>
+  <script src="js/factors.js?v=3"></script>
+  <script src="js/calc.js?v=3"></script>
+  <script src="js/recommendations.js?v=3"></script>
+  <script src="js/storage.js?v=3"></script>
+  <script src="js/kullanicilar.js?v=3"></script>
+  <script src="js/yayin.js?v=3"></script>
+  <script src="js/app.js?v=3" defer></script>
 </body>
 </html>

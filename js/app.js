@@ -189,8 +189,6 @@
 
   // ---------------------------------------------------------------- grafikler
 
-  const PALETTE = ['#2f6b4f', '#4c7196', '#c7962c', '#b85a3e', '#7a6a9a', '#4f9a8a', '#a0785a', '#8a958f', '#9c5f74', '#6f8f3e', '#b07a2a'];
-  const SCOPE_COLORS = { 1: '#b85a3e', 2: '#c7962c', 3: '#4c7196' };
 
   function cssVar(name) {
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -270,29 +268,12 @@
 
   const renderers = {};
 
-  function renderDemoBanner() {
-    const el = $('#demoBanner');
-    el.hidden = !state.demo || !yonetici();
-    if (el.hidden) return;
-    el.innerHTML = `<span><strong>Örnek veriler gösteriliyor.</strong> Sekiz tesisin son dört yılı uygulamayı denemeniz için hazır olarak yüklendi. Kendi verilerinizi girmeye başlamak için bu verileri temizleyin.</span>
-      <button class="btn secondary sm" id="clearDemo">Örnek verileri temizle</button>`;
-    $('#clearDemo', el).addEventListener('click', async () => {
-      if (!(await ask('Örnek tesisler ve tüm kayıtları silinecek. Ardından kendi tesisinizi ekleyebilirsiniz.', 'Temizle'))) return;
-      state = Storage.emptyState();
-      ui.facility = null;
-      ui.cmp = {};
-      ui.view = 'facilities';
-      persist('Örnek veriler temizlendi. Şimdi kendi tesisinizi ekleyin.');
-    });
-  }
-
   function render() {
     const girisli = !!oturum;
     document.body.classList.toggle('giris-modu', !girisli);
     if (!girisli) ui.view = 'giris';
     else if (!sekmeIzinli(ui.view)) ui.view = rolBilgisi().sekmeler[0];
     renderOturumKutusu();
-    renderDemoBanner();
     $$('.tabs button').forEach((b) => { b.hidden = !sekmeIzinli(b.dataset.view); });
     $$('.tabs button').forEach((b) => b.classList.toggle('active', b.dataset.view === ui.view));
     $$('.view').forEach((v) => v.classList.toggle('active', v.id === 'view-' + ui.view));
@@ -351,150 +332,106 @@
     const prev = Calc.aggregateYear(state, fid, year - 1);
     const tot = cur.total;
     const yoy = sameMonthsChange(cur, prev);
-    const intens = Calc.intensities(state, fid, cur);
     const target = Calc.targetProgress(state, fid, year);
-    const scopeShare = (s) => (tot.total ? `%${fmt((tot.scopes[s] / tot.total) * 100, 1)}` : '—');
+    const kaynaklar = Calc.topSources(tot).slice(0, 5);
+    const enBuyuk = kaynaklar[0];
 
-    let targetKpi = '';
+    let hedef = '';
     if (target && !target.incompleteBase && target.current !== null) {
-      const ratio = Math.max(0, Math.min(1, (target.achievedPct || 0) / target.pct));
-      targetKpi = `
-        <div class="kpi">
-          <div class="label">Hedef: ${target.targetYear}'e kadar %${fmt(target.pct)} azaltım</div>
-          <div class="value">%${fmt(target.achievedPct, 1)} <small>gerçekleşen</small></div>
-          <div class="progress ${target.onTrack ? '' : 'bad'}"><div style="width:${ratio * 100}%"></div></div>
-          <div class="sub">${target.onTrack ? '<span class="pill ok">Yolunda</span>' : '<span class="pill bad">Hedefin gerisinde</span>'} · baz ${target.baseYear}</div>
+      const oran = Math.max(0, Math.min(1, (target.achievedPct || 0) / target.pct));
+      hedef = `<div class="kpi">
+          <div class="label">${target.targetYear} hedefi: %${fmt(target.pct)} azaltım</div>
+          <div class="value">%${fmt(target.achievedPct, 1)}</div>
+          <div class="progress ${target.onTrack ? '' : 'bad'}"><div style="width:${oran * 100}%"></div></div>
+          <div class="sub">${target.onTrack ? 'Hedefe uygun gidiyor' : 'Hedefin gerisinde'}</div>
         </div>`;
-    } else if (target && target.incompleteBase) {
-      targetKpi = `<div class="kpi"><div class="label">Azaltım hedefi</div><div class="value"><small>Baz yılı (${target.baseYear}) verisi eksik</small></div><div class="sub">${target.baseMonths}/12 ay girildi</div></div>`;
     }
 
     root.innerHTML = `
       <div class="view-header">
         <div>
-          <h2>${esc(facilityName(fid))} · ${year}</h2>
-          <p>${tot.monthsWithData} / 12 ay veri girildi${tot.monthsWithData && tot.monthsWithData < 12 ? ' · yıl henüz tamamlanmadı' : ''}</p>
+          <h2>${esc(facilityName(fid))}, ${year}</h2>
+          <p>${tot.monthsWithData} ay veri girildi</p>
         </div>
         <div class="actions no-print">
-          <button class="btn secondary" data-go="entry">+ Veri gir</button>
-          <button class="btn secondary" data-go="recommendations">Öneriler</button>
+          ${sekmeIzinli('entry') ? '<button class="btn" data-go="entry">Veri gir</button>' : ''}
+          <button class="btn secondary" id="yazdir">Yazdır</button>
         </div>
       </div>
 
-      ${tot.monthsWithData ? '' : `<div class="notice warn">${year} yılı için henüz veri yok. "Veri Girişi" sekmesinden aylık tüketimlerinizi girin.</div>`}
+      ${tot.monthsWithData ? '' : `<div class="notice warn">${year} yılı için henüz veri girilmemiş.</div>`}
 
       <div class="kpis">
         <div class="kpi">
-          <div class="label">Toplam emisyon (${year})</div>
-          <div class="value">${t(tot.total)} <small>tCO₂e</small></div>
-          <div class="sub">Geçen yılın aynı ayları: ${yoy.n ? pctHtml(yoy.pct) : '—'}</div>
+          <div class="label">Toplam emisyon</div>
+          <div class="value">${t(tot.total)} <small>ton CO₂e</small></div>
         </div>
-        <div class="kpi s1"><div class="label">Kapsam 1 · doğrudan</div><div class="value">${t(tot.scopes[1])} <small>t</small></div><div class="sub">Toplamın ${scopeShare(1)}'i</div></div>
-        <div class="kpi s2"><div class="label">Kapsam 2 · enerji dolaylı</div><div class="value">${t(tot.scopes[2])} <small>t</small></div><div class="sub">Toplamın ${scopeShare(2)}'i</div></div>
-        <div class="kpi s3"><div class="label">Kapsam 3 · diğer dolaylı</div><div class="value">${t(tot.scopes[3])} <small>t</small></div><div class="sub">Toplamın ${scopeShare(3)}'i</div></div>
         <div class="kpi">
-          <div class="label">Yoğunluk göstergeleri</div>
-          <div class="value">${intens.perEmployee !== null ? t(intens.perEmployee) : '—'} <small>t / çalışan·yıl</small></div>
-          <div class="sub">
-            ${intens.perProduction !== null ? `${fmt(intens.perProduction, 1)} kg / ${esc(intens.productionUnit || 'üretim birimi')}` : ''}
-            ${intens.perArea !== null ? ` · ${fmt(intens.perArea, 1)} kg / m²·yıl` : ''}
-            ${intens.annualized ? '<br/>(eksik aylar yıllığa ölçeklendi)' : ''}
-          </div>
+          <div class="label">Geçen yılın aynı aylarına göre</div>
+          <div class="value">${yoy.n ? pctHtml(yoy.pct) : '—'}</div>
         </div>
-        ${targetKpi}
+        <div class="kpi">
+          <div class="label">En büyük kaynak</div>
+          <div class="value kucuk">${enBuyuk ? esc(enBuyuk.source.label) : '—'}</div>
+          ${enBuyuk && tot.total ? `<div class="sub">Toplamın %${fmt((enBuyuk.kg / tot.total) * 100, 0)}'i</div>` : ''}
+        </div>
+        ${hedef}
       </div>
 
       <div class="grid grid-2">
         <div class="card">
-          <h3>Aylık emisyonlar (tCO₂e) — kapsamlara göre</h3>
+          <h3>Aylık emisyon (ton)</h3>
           <div class="chart-box"><canvas id="chMonthly"></canvas></div>
         </div>
         <div class="card">
-          <h3>Kaynaklara göre dağılım</h3>
-          <div class="chart-box"><canvas id="chSources"></canvas></div>
+          <h3>En çok emisyon yapan kaynaklar</h3>
+          <table class="kaynaklar">
+            ${kaynaklar.map((x) => {
+              const pay = tot.total ? (x.kg / tot.total) * 100 : 0;
+              return `<tr><td>${esc(x.source.label)}</td><td class="num">${t(x.kg)} t</td><td class="num">%${fmt(pay, 0)}</td></tr>
+                <tr class="cubuk-satir"><td colspan="3"><div class="cubuk"><div style="width:${pay}%"></div></div></td></tr>`;
+            }).join('') || '<tr><td class="muted">Veri yok</td></tr>'}
+          </table>
         </div>
       </div>
 
-      <div class="card" style="margin-top:1.25rem">
-        <h3>Aylık döküm</h3>
+      <div class="card">
+        <h3>Aylara göre</h3>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Ay</th><th class="num">Kapsam 1</th><th class="num">Kapsam 2</th><th class="num">Kapsam 3</th><th class="num">Toplam (t)</th><th class="num">${year - 1} (t)</th><th class="num">Değişim</th><th class="num">Önceki aya göre</th></tr></thead>
+            <thead><tr><th>Ay</th><th class="num">${year} (ton)</th><th class="num">${year - 1} (ton)</th><th class="num">Fark</th></tr></thead>
             <tbody>
-              ${cur.months
-                .map((m, i) => {
-                  const p = prev.months[i];
-                  const before = i > 0 ? cur.months[i - 1] : prev.months[11];
-                  if (!m.hasData) return `<tr class="muted"><td>${MONTHS[i]}</td><td colspan="4">veri yok</td><td class="num">${p.hasData ? t(p.total) : '—'}</td><td></td><td></td></tr>`;
-                  return `<tr>
-                    <td>${MONTHS[i]}</td>
-                    <td class="num">${t(m.scopes[1])}</td>
-                    <td class="num">${t(m.scopes[2])}</td>
-                    <td class="num">${t(m.scopes[3])}</td>
-                    <td class="num"><strong>${t(m.total)}</strong></td>
-                    <td class="num">${p.hasData ? t(p.total) : '—'}</td>
-                    <td class="num">${p.hasData ? pctHtml(((m.total - p.total) / (p.total || 1)) * 100) : '—'}</td>
-                    <td class="num">${before.hasData ? pctHtml(((m.total - before.total) / (before.total || 1)) * 100) : '—'}</td>
-                  </tr>`;
-                })
-                .join('')}
-              <tr class="total"><td>Yıl toplamı</td><td class="num">${t(tot.scopes[1])}</td><td class="num">${t(tot.scopes[2])}</td><td class="num">${t(tot.scopes[3])}</td><td class="num">${t(tot.total)}</td><td class="num">${prev.total.monthsWithData ? t(prev.total.total) : '—'}</td><td class="num">${yoy.n ? pctHtml(yoy.pct) : '—'}</td><td></td></tr>
+              ${cur.months.map((m, i) => {
+                const p = prev.months[i];
+                if (!m.hasData) return `<tr class="muted"><td>${MONTHS[i]}</td><td class="num">—</td><td class="num">${p.hasData ? t(p.total) : '—'}</td><td></td></tr>`;
+                return `<tr><td>${MONTHS[i]}</td><td class="num">${t(m.total)}</td><td class="num">${p.hasData ? t(p.total) : '—'}</td>
+                  <td class="num">${p.hasData ? pctHtml(((m.total - p.total) / (p.total || 1)) * 100) : '—'}</td></tr>`;
+              }).join('')}
+              <tr class="total"><td>Toplam</td><td class="num">${t(tot.total)}</td><td class="num">${prev.total.monthsWithData ? t(prev.total.total) : '—'}</td><td class="num">${yoy.n ? pctHtml(yoy.pct) : '—'}</td></tr>
             </tbody>
           </table>
         </div>
       </div>`;
     bindCommon(root);
+    $('#yazdir', root).addEventListener('click', () => window.print());
 
     makeChart('chMonthly', {
       type: 'bar',
       data: {
         labels: MONTHS_SHORT,
         datasets: [
-          ...[1, 2, 3].map((s) => ({
-            label: SCOPES[s].name,
-            data: cur.months.map((m) => (m.hasData ? m.scopes[s] / 1000 : null)),
-            backgroundColor: SCOPE_COLORS[s],
-            stack: 'cur',
-          })),
-          {
-            type: 'line',
-            label: `${year - 1} toplam`,
-            data: prev.months.map((m) => (m.hasData ? m.total / 1000 : null)),
-            borderColor: cssVar('--muted'),
-            borderDash: [5, 4],
-            pointRadius: 2,
-            tension: 0.25,
-          },
+          { label: String(year), data: cur.months.map((m) => (m.hasData ? m.total / 1000 : null)), backgroundColor: cssVar('--accent') },
+          { label: String(year - 1), data: prev.months.map((m) => (m.hasData ? m.total / 1000 : null)), backgroundColor: cssVar('--line-strong') },
         ],
       },
       options: {
-        scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: tonTicks } },
+        scales: { y: { beginAtZero: true, ticks: tonTicks } },
         plugins: { tooltip: tonTooltip, legend: { position: 'bottom' } },
-      },
-    });
-
-    const top = Calc.topSources(tot);
-    const main = top.slice(0, 8);
-    const rest = top.slice(8).reduce((s, x) => s + x.kg, 0);
-    makeChart('chSources', {
-      type: 'doughnut',
-      data: {
-        labels: [...main.map((x) => x.source.label), ...(rest ? ['Diğer'] : [])],
-        datasets: [{ data: [...main.map((x) => x.kg / 1000), ...(rest ? [rest / 1000] : [])], backgroundColor: PALETTE, borderWidth: 1 }],
-      },
-      options: {
-        plugins: {
-          legend: { position: 'right', labels: { boxWidth: 12 } },
-          tooltip: {
-            callbacks: {
-              label: (c) => `${c.label}: ${fmt(c.parsed, 2)} t (%${fmt(tot.total ? ((c.parsed * 1000) / tot.total) * 100 : 0, 1)})`,
-            },
-          },
-        },
       },
     });
   };
 
+  // ---------------------------------------------------------------- Veri Girişi
   // ---------------------------------------------------------------- Veri Girişi
 
   function defaultEntryMonth() {
@@ -738,27 +675,6 @@
 
   // ---------------------------------------------------------------- Karşılaştırma
 
-  function sourceDiffTable(a, b, labelA, labelB) {
-    const rows = Calc.compareBySource(a, b);
-    if (!rows.length) return '<p class="muted">Karşılaştırılacak veri yok.</p>';
-    return `<div class="table-wrap"><table>
-      <thead><tr><th>Kaynak</th><th>Kapsam</th><th class="num">${esc(labelA)} (t)</th><th class="num">${esc(labelB)} (t)</th><th class="num">Fark (t)</th><th class="num">Değişim</th></tr></thead>
-      <tbody>
-        ${[1, 2, 3]
-          .map((s) => {
-            const c = Calc.change(a.scopes[s], b.scopes[s]);
-            return `<tr class="total"><td>${SCOPES[s].name}</td><td><span class="tag s${s}">K${s}</span></td><td class="num">${t(c.current)}</td><td class="num">${t(c.previous)}</td><td class="num">${c.diff > 0 ? '+' : ''}${t(c.diff)}</td><td class="num">${pctHtml(c.pct)}</td></tr>`;
-          })
-          .join('')}
-        ${rows
-          .map(
-            (r) => `<tr><td>${esc(r.source.label)}</td><td><span class="tag s${r.source.scope}">K${r.source.scope}</span></td><td class="num">${t(r.current)}</td><td class="num">${t(r.previous)}</td><td class="num">${r.diff > 0 ? '+' : ''}${t(r.diff)}</td><td class="num">${pctHtml(r.pct)}</td></tr>`
-          )
-          .join('')}
-        <tr class="total"><td colspan="2">Genel toplam</td><td class="num">${t(a.total)}</td><td class="num">${t(b.total)}</td><td class="num">${a.total - b.total > 0 ? '+' : ''}${t(a.total - b.total)}</td><td class="num">${pctHtml(b.total ? ((a.total - b.total) / b.total) * 100 : null)}</td></tr>
-      </tbody></table></div>`;
-  }
-
   renderers.compare = (root) => {
     if (!gorunurTesisler().length) {
       root.innerHTML = emptyFacilities();
@@ -769,17 +685,6 @@
     const c = ui.cmp;
     if (!c.yearA) c.yearA = ui.year;
     if (!c.yearB) c.yearB = c.yearA - 1;
-    if (!c.monthA) {
-      // Seçili yılda verisi olan son ay
-      const agg = Calc.aggregateYear(state, fid, ui.year);
-      const last = [...agg.months].reverse().find((m) => m.hasData);
-      c.monthA = Calc.monthKey(ui.year, last ? last.month : Math.max(1, now.getMonth()));
-    }
-    if (!c.monthB) {
-      const [y, m] = c.monthA.split('-').map(Number);
-      c.monthB = Calc.monthKey(y - 1, m);
-    }
-
     const yearOpts = (sel) => {
       const set = new Set([...years, ui.year, ui.year - 1, Number(sel)]);
       return [...set].sort((a, b) => b - a).map((y) => `<option value="${y}" ${Number(sel) === y ? 'selected' : ''}>${y}</option>`).join('');
@@ -789,62 +694,41 @@
     const B = Calc.aggregateYear(state, fid, Number(c.yearB));
     const same = sameMonthsChange(A, B);
 
-    const [ay, am] = c.monthA.split('-').map(Number);
-    const [by, bm] = c.monthB.split('-').map(Number);
-    const MA = Calc.aggregateMonth(state, fid, ay, am);
-    const MB = Calc.aggregateMonth(state, fid, by, bm);
-
     const tesisler = gorunurTesisler();
     const multi = tesisler.length > 1;
 
     root.innerHTML = `
       <div class="view-header">
-        <div><h2>Karşılaştırma · ${esc(facilityName(fid))}</h2><p>Yıllar, aylar ve tesisler arasında emisyonları karşılaştırın.</p></div>
+        <div><h2>Karşılaştırma</h2><p>${esc(facilityName(fid))}</p></div>
       </div>
 
       <div class="card">
-        <h3>Yıllık karşılaştırma</h3>
+        <h3>İki yılı karşılaştır</h3>
         <div class="actions" style="margin-bottom:1rem">
-          <label class="field" style="width:140px">Yıl A<select id="cmpYearA">${yearOpts(c.yearA)}</select></label>
-          <label class="field" style="width:140px">Yıl B<select id="cmpYearB">${yearOpts(c.yearB)}</select></label>
+          <label class="field" style="width:140px">Birinci yıl<select id="cmpYearA">${yearOpts(c.yearA)}</select></label>
+          <label class="field" style="width:140px">İkinci yıl<select id="cmpYearB">${yearOpts(c.yearB)}</select></label>
         </div>
         <div class="kpis">
           <div class="kpi"><div class="label">${c.yearA} toplam (${A.total.monthsWithData} ay)</div><div class="value">${t(A.total.total)} <small>t</small></div></div>
           <div class="kpi"><div class="label">${c.yearB} toplam (${B.total.monthsWithData} ay)</div><div class="value">${t(B.total.total)} <small>t</small></div></div>
-          <div class="kpi"><div class="label">Aynı aylar bazında değişim (${same.n} ay)</div><div class="value">${same.n ? pctHtml(same.pct) : '—'}</div><div class="sub">${same.n ? `${t(same.a)} t ↔ ${t(same.b)} t` : 'Ortak ay yok'}</div></div>
+          <div class="kpi"><div class="label">Değişim (aynı ${same.n} ay)</div><div class="value">${same.n ? pctHtml(same.pct) : '—'}</div></div>
         </div>
         <div class="chart-box"><canvas id="chYears"></canvas></div>
-        <h3 style="margin-top:1.25rem">Kaynak bazında fark (${c.yearA} − ${c.yearB})</h3>
-        ${A.total.monthsWithData !== B.total.monthsWithData ? `<div class="notice warn">Yıllarda girilen ay sayısı farklı (${A.total.monthsWithData} / ${B.total.monthsWithData}); toplamlar doğrudan karşılaştırılabilir değildir.</div>` : ''}
-        ${sourceDiffTable(A.total, B.total, String(c.yearA), String(c.yearB))}
-      </div>
-
-      <div class="card">
-        <h3>Aylık karşılaştırma</h3>
-        <div class="actions" style="margin-bottom:1rem; align-items:flex-end">
-          <label class="field" style="width:180px">Ay A<input type="month" id="cmpMonthA" value="${c.monthA}" /></label>
-          <label class="field" style="width:180px">Ay B<input type="month" id="cmpMonthB" value="${c.monthB}" /></label>
-          <button class="btn secondary sm" id="cmpPrevMonth">Bir önceki ay</button>
-          <button class="btn secondary sm" id="cmpPrevYear">Geçen yılın aynı ayı</button>
-        </div>
-        ${!MA.hasData || !MB.hasData ? `<div class="notice warn">${!MA.hasData ? monthLabel(c.monthA) : monthLabel(c.monthB)} için veri yok.</div>` : ''}
-        ${sourceDiffTable(MA, MB, monthLabel(c.monthA), monthLabel(c.monthB))}
       </div>
 
       ${multi ? `
       <div class="card">
-        <h3>Tesis karşılaştırması · ${ui.year}</h3>
+        <h3>Tesisler, ${ui.year}</h3>
         <div class="chart-box small"><canvas id="chFacilities"></canvas></div>
         <div class="table-wrap" style="margin-top:1rem"><table>
-          <thead><tr><th>Tesis</th><th>Tür</th><th class="num">Ay</th><th class="num">Kapsam 1</th><th class="num">Kapsam 2</th><th class="num">Kapsam 3</th><th class="num">Toplam (t)</th><th class="num">t / çalışan·yıl</th><th class="num">kg / m²·yıl</th><th class="num">Geçen yıla göre</th></tr></thead>
+          <thead><tr><th>Tesis</th><th>Şehir</th><th class="num">Toplam (ton)</th><th class="num">Geçen yıla göre</th></tr></thead>
           <tbody>
           ${tesisler
             .map((f) => {
               const a = Calc.aggregateYear(state, f.id, ui.year);
               const p = Calc.aggregateYear(state, f.id, ui.year - 1);
-              const i = Calc.intensities(state, f.id, a);
               const ch = sameMonthsChange(a, p);
-              return `<tr><td>${esc(f.name)}</td><td>${esc(f.type || '')}</td><td class="num">${a.total.monthsWithData}</td><td class="num">${t(a.total.scopes[1])}</td><td class="num">${t(a.total.scopes[2])}</td><td class="num">${t(a.total.scopes[3])}</td><td class="num"><strong>${t(a.total.total)}</strong></td><td class="num">${i.perEmployee !== null ? t(i.perEmployee) : '—'}</td><td class="num">${i.perArea !== null ? fmt(i.perArea, 1) : '—'}</td><td class="num">${ch.n ? pctHtml(ch.pct) : '—'}</td></tr>`;
+              return `<tr><td>${esc(f.name)}</td><td>${esc(f.city || '')}</td><td class="num">${t(a.total.total)}</td><td class="num">${ch.n ? pctHtml(ch.pct) : '—'}</td></tr>`;
             })
             .join('')}
           </tbody></table></div>
@@ -852,18 +736,13 @@
 
     $('#cmpYearA', root).addEventListener('change', (e) => { c.yearA = Number(e.target.value); render(); });
     $('#cmpYearB', root).addEventListener('change', (e) => { c.yearB = Number(e.target.value); render(); });
-    $('#cmpMonthA', root).addEventListener('change', (e) => { if (e.target.value) { c.monthA = e.target.value; render(); } });
-    $('#cmpMonthB', root).addEventListener('change', (e) => { if (e.target.value) { c.monthB = e.target.value; render(); } });
-    $('#cmpPrevMonth', root).addEventListener('click', () => { c.monthB = am === 1 ? Calc.monthKey(ay - 1, 12) : Calc.monthKey(ay, am - 1); render(); });
-    $('#cmpPrevYear', root).addEventListener('click', () => { c.monthB = Calc.monthKey(ay - 1, am); render(); });
-
     makeChart('chYears', {
       type: 'bar',
       data: {
         labels: MONTHS_SHORT,
         datasets: [
-          { label: String(c.yearA), data: A.months.map((m) => (m.hasData ? m.total / 1000 : null)), backgroundColor: PALETTE[0] },
-          { label: String(c.yearB), data: B.months.map((m) => (m.hasData ? m.total / 1000 : null)), backgroundColor: PALETTE[7] },
+          { label: String(c.yearA), data: A.months.map((m) => (m.hasData ? m.total / 1000 : null)), backgroundColor: cssVar('--accent') },
+          { label: String(c.yearB), data: B.months.map((m) => (m.hasData ? m.total / 1000 : null)), backgroundColor: cssVar('--line-strong') },
         ],
       },
       options: { scales: { y: { beginAtZero: true, ticks: tonTicks } }, plugins: { tooltip: tonTooltip, legend: { position: 'bottom' } } },
@@ -875,12 +754,12 @@
         type: 'bar',
         data: {
           labels: tesisler.map((f) => f.name),
-          datasets: [1, 2, 3].map((s) => ({ label: SCOPES[s].name, data: aggs.map((a) => a.scopes[s] / 1000), backgroundColor: SCOPE_COLORS[s] })),
+          datasets: [{ label: 'Toplam', data: aggs.map((a) => a.total / 1000), backgroundColor: cssVar('--accent') }],
         },
         options: {
           indexAxis: 'y',
-          scales: { x: { stacked: true, beginAtZero: true, ticks: tonTicks }, y: { stacked: true } },
-          plugins: { tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${fmt(ctx.parsed.x, 2)} tCO₂e` } }, legend: { position: 'bottom' } },
+          scales: { x: { beginAtZero: true, ticks: tonTicks } },
+          plugins: { tooltip: { callbacks: { label: (ctx) => `${fmt(ctx.parsed.x, 2)} ton` } }, legend: { display: false } },
         },
       });
     }
@@ -893,13 +772,10 @@
       <header>
         <h4>${esc(r.title)}</h4>
         <div class="actions">
-          <span class="tag">${esc(r.category)}</span>
-          <span class="tag ${r.priority}">Öncelik: ${r.priority}</span>
           ${r.potential ? `<span class="saving">≈ −${t(r.potential)} tCO₂e/yıl</span>` : ''}
         </div>
       </header>
       <p>${esc(r.text)}</p>
-      ${r.detail ? `<p class="detail">${esc(r.detail)}</p>` : ''}
     </article>`;
   }
 
@@ -913,69 +789,24 @@
     const agg = Calc.aggregateYear(state, fid, ui.year);
     const actions = recs.filter((r) => r.type === 'action');
     const notes = recs.filter((r) => r.type !== 'action');
-    const potential = actions.reduce((s, r) => s + r.potential, 0);
-    const total = agg.total.total;
-    // Elektrik için iki öneri aynı kaynağı hedefliyor; senaryoda toplam elektrik emisyonunu aşmasın.
-    const elecKg = agg.total.bySource.electricity || 0;
-    const elecPot = actions.filter((r) => r.id === 'efficiency' || r.id === 'renewable').reduce((s, r) => s + r.potential, 0);
-    const scenario = Math.min(total, potential - Math.max(0, elecPot - elecKg));
-
     root.innerHTML = `
       <div class="view-header">
-        <div><h2>Azaltım Önerileri · ${esc(facilityName(fid))} · ${ui.year}</h2>
-        <p>Öneriler, emisyon dağılımınıza, geçen yıla göre değişime ve hedeflerinize göre otomatik üretilir.</p></div>
+        <div><h2>Öneriler</h2>
+        <p>${esc(facilityName(fid))}, ${ui.year}. Öneriler girilen verilere göre hazırlanır.</p></div>
       </div>
 
-      ${actions.length ? `
-      <div class="kpis">
-        <div class="kpi"><div class="label">Mevcut emisyon (${agg.total.monthsWithData} ay)</div><div class="value">${t(total)} <small>tCO₂e</small></div></div>
-        <div class="kpi"><div class="label">Toplam azaltım potansiyeli</div><div class="value">${t(scenario)} <small>t</small></div><div class="sub">Mevcut emisyonun %${fmt(total ? (scenario / total) * 100 : 0, 1)}'i</div></div>
-        <div class="kpi"><div class="label">Tüm öneriler uygulanırsa</div><div class="value">${t(total - scenario)} <small>t</small></div><div class="sub">Tahmini, kaba bir senaryodur</div></div>
-      </div>
       <div class="grid grid-2">
         <div class="card">
-          <h3>Eylem önerileri (potansiyele göre)</h3>
-          ${actions.map(recCard).join('')}
+          <h3>Önce bunlar yapılabilir</h3>
+          ${actions.length ? actions.slice(0, 5).map(recCard).join('') : '<p class="muted">Öneri yok.</p>'}
         </div>
-        <div class="stack">
-          <div class="card">
-            <h3>Azaltım potansiyeli (tCO₂e/yıl)</h3>
-            <div class="chart-box"><canvas id="chPotential"></canvas></div>
-          </div>
-          <div class="card">
-            <h3>Uyarılar ve bilgilendirmeler</h3>
-            ${notes.length ? notes.map(recCard).join('') : '<p class="muted">Uyarı yok.</p>'}
-          </div>
+        <div class="card">
+          <h3>Dikkat edilecekler</h3>
+          ${notes.length ? notes.map(recCard).join('') : '<p class="muted">Uyarı yok.</p>'}
         </div>
-      </div>` : `<div class="card">${recs.map(recCard).join('')}</div>`}
-
-      <div class="card">
-        <h3>Genel yol haritası</h3>
-        <ol>
-          <li><strong>Ölç:</strong> Tüm tesislerin 12 aylık verisini eksiksiz girin; faturaları ve sayaç okumalarını kaynak belge olarak saklayın.</li>
-          <li><strong>Hedef koy:</strong> Baz yılı belirleyip bilim temelli (SBTi uyumlu, yıllık ≈%4,2) bir azaltım hedefi tanımlayın ("Tesisler" sayfası).</li>
-          <li><strong>Hızlı kazanımlar:</strong> Aydınlatma, basınçlı hava kaçakları, kazan ayarı, soğutucu gaz kaçakları gibi düşük maliyetli önlemlerle başlayın.</li>
-          <li><strong>Yatırımlar:</strong> GES, ısı pompası, atık ısı geri kazanımı ve filo elektrifikasyonu için fizibilite yapın.</li>
-          <li><strong>Değer zinciri:</strong> Tedarikçilerden ürün karbon ayak izi talep edin, lojistikte düşük emisyonlu seçenekleri tercih edin.</li>
-          <li><strong>Raporla:</strong> GHG Protocol / ISO 14064-1 uyumlu yıllık envanter hazırlayın; gerekiyorsa üçüncü taraf doğrulaması alın.</li>
-        </ol>
       </div>`;
     bindCommon(root);
 
-    if (actions.length) {
-      makeChart('chPotential', {
-        type: 'bar',
-        data: {
-          labels: actions.map((r) => r.title),
-          datasets: [{ label: 'Potansiyel', data: actions.map((r) => r.potential / 1000), backgroundColor: PALETTE[0] }],
-        },
-        options: {
-          indexAxis: 'y',
-          scales: { x: { beginAtZero: true, ticks: tonTicks }, y: { ticks: { autoSkip: false, callback(v) { const l = this.getLabelForValue(v); return l.length > 28 ? l.slice(0, 27) + '…' : l; } } } },
-          plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `${fmt(ctx.parsed.x, 2)} tCO₂e/yıl` } } },
-        },
-      });
-    }
   };
 
   // ---------------------------------------------------------------- Tesisler
@@ -1072,89 +903,6 @@
 
   // ---------------------------------------------------------------- Rapor
 
-  renderers.report = (root) => {
-    if (!gorunurTesisler().length) {
-      root.innerHTML = emptyFacilities();
-      return bindCommon(root);
-    }
-    const fid = ui.facility;
-    const year = ui.year;
-    const f = Calc.facilityInfo(state, fid);
-    const cur = Calc.aggregateYear(state, fid, year);
-    const prev = Calc.aggregateYear(state, fid, year - 1);
-    const tot = cur.total;
-    const yoy = sameMonthsChange(cur, prev);
-    const intens = Calc.intensities(state, fid, cur);
-    const recs = Recommendations.generate(state, fid, year).filter((r) => r.type === 'action').slice(0, 6);
-    const usedFactors = SOURCES.filter((s) => tot.activity[s.key]);
-    const target = Calc.targetProgress(state, fid, year);
-
-    root.innerHTML = `
-      <div class="actions no-print" style="margin-bottom:1rem">
-        <button class="btn" id="printBtn">Yazdır / PDF olarak kaydet</button>
-        <button class="btn secondary" id="reportCsv">Özet tabloyu CSV indir</button>
-      </div>
-      <div class="card report-sheet">
-        <h2>Sera Gazı Emisyon Raporu — ${year}</h2>
-        <div class="report-meta">
-          <strong>${esc(f.name)}</strong>${f.type ? ` · ${esc(f.type)}` : ''}${f.sector ? ` · ${esc(f.sector)}` : ''}${f.city ? ` · ${esc(f.city)}` : ''}<br/>
-          Raporlama dönemi: Ocak–Aralık ${year} (${tot.monthsWithData}/12 ay veri) · Hazırlanma tarihi: ${now.toLocaleDateString('tr-TR')}<br/>
-          Yöntem: GHG Protocol Kurumsal Standardı, operasyonel kontrol yaklaşımı · Birim: tCO₂e
-        </div>
-
-        <h3>1. Özet</h3>
-        <div class="table-wrap"><table>
-          <thead><tr><th>Kapsam</th><th>Açıklama</th><th class="num">${year} (tCO₂e)</th><th class="num">Pay</th><th class="num">${year - 1} (tCO₂e)</th></tr></thead>
-          <tbody>
-            ${[1, 2, 3].map((s) => `<tr><td>${SCOPES[s].name}</td><td>${SCOPES[s].desc}</td><td class="num">${t(tot.scopes[s])}</td><td class="num">%${fmt(tot.total ? (tot.scopes[s] / tot.total) * 100 : 0, 1)}</td><td class="num">${prev.total.monthsWithData ? t(prev.total.scopes[s]) : '—'}</td></tr>`).join('')}
-            <tr class="total"><td colspan="2">Toplam</td><td class="num">${t(tot.total)}</td><td class="num">%100</td><td class="num">${prev.total.monthsWithData ? t(prev.total.total) : '—'}</td></tr>
-          </tbody></table></div>
-        <p>
-          Geçen yılın aynı aylarına göre değişim: ${yoy.n ? pctHtml(yoy.pct) + ` (${yoy.n} ay)` : 'karşılaştırılabilir veri yok'}.
-          ${intens.perEmployee !== null ? ` Çalışan başına: <strong>${t(intens.perEmployee)} tCO₂e/yıl</strong>.` : ''}
-          ${intens.perProduction !== null ? ` Birim üretim başına: <strong>${fmt(intens.perProduction, 1)} kgCO₂e / ${esc(intens.productionUnit || 'birim')}</strong>.` : ''}
-          ${target && !target.incompleteBase && target.current !== null ? ` Hedef: ${target.baseYear} bazına göre ${target.targetYear}'e kadar %${fmt(target.pct)} azaltım; gerçekleşen %${fmt(target.achievedPct, 1)} (${target.onTrack ? 'yolunda' : 'hedefin gerisinde'}).` : ''}
-        </p>
-
-        <h3>2. Kaynak bazında emisyonlar</h3>
-        <div class="table-wrap"><table>
-          <thead><tr><th>Kaynak</th><th>Kapsam</th><th class="num">Faaliyet verisi</th><th>Birim</th><th class="num">Faktör (kgCO₂e/birim)</th><th class="num">Emisyon (t)</th><th class="num">Pay</th></tr></thead>
-          <tbody>
-            ${usedFactors
-              .map((s) => {
-                const kg = tot.bySource[s.key] || 0;
-                return `<tr><td>${esc(s.label)}</td><td>K${s.scope}</td><td class="num">${fmt(tot.activity[s.key], 0)}</td><td>${esc(s.unit)}</td><td class="num">${fmt(Calc.getFactor(s.key, state.factorOverrides), 3)}</td><td class="num">${t(kg)}</td><td class="num">%${fmt(tot.total ? (kg / tot.total) * 100 : 0, 1)}</td></tr>`;
-              })
-              .join('') || '<tr><td colspan="7">Veri yok</td></tr>'}
-          </tbody></table></div>
-
-        <h3 style="margin-top:1.25rem">3. Aylık emisyonlar (tCO₂e)</h3>
-        <div class="table-wrap"><table>
-          <thead><tr><th>Ay</th><th class="num">K1</th><th class="num">K2</th><th class="num">K3</th><th class="num">Toplam</th></tr></thead>
-          <tbody>${cur.months.map((m, i) => `<tr class="${m.hasData ? '' : 'muted'}"><td>${MONTHS[i]}</td>${m.hasData ? `<td class="num">${t(m.scopes[1])}</td><td class="num">${t(m.scopes[2])}</td><td class="num">${t(m.scopes[3])}</td><td class="num">${t(m.total)}</td>` : '<td colspan="4">veri yok</td>'}</tr>`).join('')}
-          <tr class="total"><td>Toplam</td><td class="num">${t(tot.scopes[1])}</td><td class="num">${t(tot.scopes[2])}</td><td class="num">${t(tot.scopes[3])}</td><td class="num">${t(tot.total)}</td></tr></tbody>
-        </table></div>
-
-        <h3 style="margin-top:1.25rem">4. Öncelikli azaltım önerileri</h3>
-        ${recs.length ? `<ol>${recs.map((r) => `<li><strong>${esc(r.title)}</strong> — tahmini potansiyel ≈ ${t(r.potential)} tCO₂e/yıl. ${esc(r.text)}</li>`).join('')}</ol>` : '<p>Öneri üretmek için yeterli veri yok.</p>'}
-
-        <h3 style="margin-top:1.25rem">5. Yöntem ve varsayımlar</h3>
-        <p style="font-size:.85rem">Emisyonlar = faaliyet verisi × emisyon faktörü formülüyle hesaplanmıştır. Kapsam 2 emisyonları konum bazlı yöntemle (şebeke faktörü) hesaplanmış; YEK-G / I-REC belgeli veya öz üretim yenilenebilir elektrik için 0 faktörü kullanılmıştır (piyasa bazlı yaklaşım). Soğutucu gazlar için IPCC AR5 küresel ısınma potansiyelleri esas alınmıştır. Varsayılan faktörler yaklaşık değerlerdir; ${Object.keys(state.factorOverrides).length ? 'bazı faktörler kullanıcı tarafından güncellenmiştir.' : 'kullanıcı tarafından değiştirilmemiştir.'}</p>
-      </div>`;
-
-    const printBtn = $('#printBtn', root);
-    if (framed) printBtn.hidden = true;
-    else printBtn.addEventListener('click', () => window.print());
-    $('#reportCsv', root).addEventListener('click', () => {
-      const lines = [['ay', 'kapsam1_t', 'kapsam2_t', 'kapsam3_t', 'toplam_t'].join(';')];
-      cur.months.forEach((m, i) => {
-        if (m.hasData) lines.push([Calc.monthKey(year, i + 1), ...[1, 2, 3].map((s) => (m.scopes[s] / 1000).toFixed(3).replace('.', ',')), (m.total / 1000).toFixed(3).replace('.', ',')].join(';'));
-      });
-      lines.push(['toplam', ...[1, 2, 3].map((s) => (tot.scopes[s] / 1000).toFixed(3).replace('.', ',')), (tot.total / 1000).toFixed(3).replace('.', ',')].join(';'));
-      download(`karbon-rapor-${slug(f.name)}-${year}.csv`, '﻿' + lines.join('\n'), 'text/csv;charset=utf-8');
-    });
-  };
-
   // ---------------------------------------------------------------- Faktörler ve Ayarlar
 
   renderers.settings = (root) => {
@@ -1162,7 +910,7 @@
     let lastScope = 0;
     root.innerHTML = `
       <div class="view-header">
-        <div><h2>Emisyon Faktörleri & Ayarlar</h2><p>Varsayılan faktörleri kuruluşunuzun kullandığı güncel resmî değerlerle değiştirebilirsiniz. Değişiklik tüm geçmiş hesaplamalara uygulanır.</p></div>
+        <div><h2>Ayarlar</h2><p>Emisyon faktörleri, yedekleme ve mobil uygulama için yayın dosyası.</p></div>
       </div>
       <form class="card" id="factorForm">
         <div class="notice">Elektrik şebeke faktörü için Enerji ve Tabii Kaynaklar Bakanlığı'nın yayımladığı güncel Türkiye elektrik üretimi emisyon faktörünü kullanmanız önerilir.</div>
@@ -1331,7 +1079,6 @@
         return;
       }
       oturumAc(sonuc.kullanici, $('#girisHatirla', root).checked);
-      toast(`Hoş geldiniz, ${sonuc.kullanici.adSoyad}.`);
     });
     $('#girisEposta', root).focus();
   };
@@ -1486,7 +1233,8 @@
       seen = false;
     }
     // Eski sürümün 4 tesisli örnek verisi, demo hesapların atandığı 8 tesisli sürüme yükseltilir.
-    const eskiOrnek = state.demo && !state.facilities.some((f) => f.id === 'demo_gida');
+    const hepsiOrnek = state.facilities.length > 0 && state.facilities.every((f) => String(f.id).startsWith('demo_'));
+    const eskiOrnek = (state.demo || hepsiOrnek) && !state.facilities.some((f) => f.id === 'demo_gida');
     if ((!state.facilities.length && !seen) || eskiOrnek) {
       state = Storage.demoState(now);
       ui.facility = Calc.ALL;

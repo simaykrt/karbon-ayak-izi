@@ -1,6 +1,6 @@
-/* Düzen: koyu grafit başlık şeridi, açık çalışma yüzeyi; rakamlar eş aralıklı yazıyla, tablo gibi hizalı. */
+/* Sade düzen: beyaz başlık, açık gri zemin, sistem yazı tipi. */
 :root {
-  --paper: #f3f5f2;
+  --paper: #f4f4f2;
   --surface: #ffffff;
   --surface-2: #eceeea;
   --ink: #1d2421;
@@ -10,9 +10,9 @@
   --accent: #2f6b4f;
   --accent-ink: #ffffff;
   --accent-soft: #e3eee7;
-  --header: #1f2528;
-  --header-ink: #e9ece8;
-  --header-muted: #9aa49f;
+  --header: #ffffff;
+  --header-ink: #1d2421;
+  --header-muted: #5d6862;
   --s1: #b85a3e;
   --s2: #c7962c;
   --s3: #4c7196;
@@ -23,9 +23,9 @@
   --info-bg: #eaf0f5;
   --info-line: #c6d4e2;
   --danger-bg: #f9e6e3;
-  --font-ui: "Archivo", "Helvetica Neue", Arial, sans-serif;
-  --font-num: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-  --radius: 6px;
+  --font-ui: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-num: var(--font-ui);
+  --radius: 4px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -40,9 +40,9 @@
     --accent: #5aa883;
     --accent-ink: #0f1a14;
     --accent-soft: #1f3329;
-    --header: #0d1110;
+    --header: #1a201d;
     --header-ink: #e3e8e4;
-    --header-muted: #8b968f;
+    --header-muted: #98a59e;
     --good: #6cbf96;
     --bad: #e27464;
     --warn-bg: #2e2716;
@@ -65,9 +65,9 @@
   --accent: #5aa883;
   --accent-ink: #0f1a14;
   --accent-soft: #1f3329;
-  --header: #0d1110;
+  --header: #1a201d;
   --header-ink: #e3e8e4;
-  --header-muted: #8b968f;
+  --header-muted: #98a59e;
   --good: #6cbf96;
   --bad: #e27464;
   --warn-bg: #2e2716;
@@ -104,9 +104,10 @@ p { margin: 0 0 0.6rem; }
   padding: 0.85rem 1.5rem;
   background: var(--header);
   color: var(--header-ink);
+  border-bottom: 3px solid var(--accent);
 }
 .brand { display: flex; align-items: center; gap: 0.75rem; }
-.brand .logo { width: 30px; height: 30px; color: var(--header-ink); flex: none; }
+.brand .logo { width: 28px; height: 28px; color: var(--accent); flex: none; }
 .brand h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: 0.01em; }
 .brand p { margin: 0; color: var(--header-muted); font-size: 0.8rem; }
 .selectors { display: flex; gap: 0.75rem; flex-wrap: wrap; }
@@ -115,15 +116,13 @@ p { margin: 0 0 0.6rem; }
   flex-direction: column;
   gap: 3px;
   font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
   color: var(--header-muted);
 }
 .topbar select {
   min-width: 200px;
   background: transparent;
   color: var(--header-ink);
-  border: 1px solid #4a5450;
+  border: 1px solid var(--line-strong);
 }
 .topbar select option { color: #1d2421; background: #fff; }
 .selectors select#yearSelect { min-width: 96px; }
@@ -171,7 +170,7 @@ main { max-width: 1240px; margin: 0 auto; padding: 1.5rem 1rem 2.5rem; }
   margin-bottom: 1.25rem;
   min-width: 0;
 }
-.grid { display: grid; gap: 1.25rem; }
+.grid { display: grid; gap: 1.25rem; margin-bottom: 1.25rem; }
 .grid-2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); }
 .grid-3 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
 .grid > .card, .grid > .stack { margin-bottom: 0; min-width: 0; }
@@ -192,8 +191,6 @@ main { max-width: 1240px; margin: 0 auto; padding: 1.5rem 1rem 2.5rem; }
 .kpi { background: var(--surface); padding: 0.95rem 1.1rem; min-width: 0; }
 .kpi .label {
   font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
   color: var(--muted);
   display: flex;
   align-items: center;
@@ -215,7 +212,6 @@ main { max-width: 1240px; margin: 0 auto; padding: 1.5rem 1rem 2.5rem; }
   font-weight: 500;
   margin: 0.25rem 0 0.15rem;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
 }
 .kpi .value small { font-family: var(--font-ui); font-size: 0.8rem; font-weight: 400; color: var(--muted); letter-spacing: 0; }
 .kpi .sub { font-size: 0.8rem; color: var(--muted); }
@@ -246,8 +242,6 @@ th, td { padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--line); text-alig
 th {
   font-weight: 600;
   font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
   color: var(--muted);
   border-bottom: 1px solid var(--line-strong);
   white-space: nowrap;
@@ -285,8 +279,6 @@ fieldset { border: 1px solid var(--line); border-radius: var(--radius); padding:
 legend { font-weight: 600; padding: 0 0.4rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 .group-title {
   font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
   color: var(--muted);
   margin: 0.6rem 0 -0.2rem;
   padding-bottom: 0.3rem;
@@ -434,7 +426,7 @@ ol li { max-width: 80ch; }
 .oturum[hidden] { display: none; }
 .oturum-bilgi { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.25; font-size: 0.85rem; }
 .oturum-bilgi span { color: var(--header-muted); font-size: 0.75rem; }
-.oturum .btn.secondary { color: var(--header-ink); border-color: #4a5450; }
+
 .oturum .btn.secondary:hover { background: rgba(255, 255, 255, 0.08); }
 .giris-sayfa { max-width: 420px; margin: 2.5rem auto 1rem; }
 .giris-kart { display: flex; flex-direction: column; gap: 0.9rem; }
@@ -473,3 +465,12 @@ fieldset[hidden] { display: none; }
   .view { display: none !important; }
   .view.active { display: block !important; }
 }
+
+/* Panel: sade kaynak listesi */
+.kpi .value.kucuk { font-size: 1.05rem; font-weight: 600; }
+table.kaynaklar td { border-bottom: none; padding: 0.45rem 0.25rem 0.15rem; }
+table.kaynaklar .cubuk-satir td { padding: 0 0.25rem 0.5rem; }
+.cubuk { height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+.cubuk div { height: 100%; background: var(--accent); }
+.footer { font-size: 0.8rem; }
+.toast:not(.show) { visibility: hidden; }
