@@ -1,25 +1,38 @@
 # Karbon Ayak İzi – Mobil
 
-Yöneticilerin şirketin karbon ayak izini telefondan takip ettiği Flutter uygulaması.
+Şirketin karbon ayak izinin telefondan takip edildiği Flutter uygulaması. Kullanıcı giriş yapar, rolüne göre farklı ekranlar açılır.
 
 Sistem iki parçadan oluşur:
 
 | Parça | Kim kullanır | Ne yapar |
 |---|---|---|
-| **Web uygulaması** ([simaykrt.github.io/karbon-ayak-izi](https://simaykrt.github.io/karbon-ayak-izi/)) | Birimde çalışan personel | Aylık tüketim verilerini girer, emisyonları hesaplar, kontrolleri yapar, sonuçları yayınlar |
-| **Mobil uygulama** (bu klasör) | Yöneticiler | Yayınlanan sonuçları okur; özet, karşılaştırma ve önerileri gösterir. Veri girişi yapmaz. |
+| **Web uygulaması** ([simaykrt.github.io/karbon-ayak-izi](https://simaykrt.github.io/karbon-ayak-izi/)) | Personel ve sistem yöneticisi | Personel atandığı tesislerin aylık verilerini girer; sistem yöneticisi kullanıcıları ve tesisleri yönetir, sonuçları yayınlar |
+| **Mobil uygulama** (bu klasör) | Yöneticiler ve personel | Yayınlanan sonuçları ve kullanıcı hesaplarını okur; rolüne göre özet, karşılaştırma ve önerileri gösterir. Veri girişi yapmaz. |
 
 ```
-Personel (web)  ──"Yayın dosyasını oluştur"──▶  veri/yayin.json (GitHub)  ──indirir──▶  Yönetici (mobil)
+Personel (web) ──veri girer──▶ Sistem yöneticisi (web) ──"Yayın dosyasını oluştur"──▶ veri/yayin.json (GitHub) ──indirir──▶ Mobil uygulama
 ```
 
-## Ekranlar
+## Roller ve ekranlar
 
-- **Özet:** Toplam emisyon, geçen yıla göre değişim, çalışan başına emisyon, kapsamlara göre dağılım, aylık grafik, en büyük 5 kaynak ve azaltım hedefi durumu
-- **Karşılaştırma:** Yıllık (bu yıl ve geçen yıl), aylık (önceki ay ve geçen yılın aynı ayı) ve tesisler arası karşılaştırma
-- **Öneriler:** Web uygulamasının ürettiği uyarılar ve azaltım önerileri
+| Rol | Sekmeler | Gördüğü tesisler |
+|---|---|---|
+| **Sistem yöneticisi** | Özet, Tesisler, Karşılaştırma, Öneriler, Kullanıcılar | Tümü |
+| **Genel müdür** | Özet, Tesisler, Karşılaştırma, Öneriler | Tümü |
+| **Tesis müdürü** | Özet, Karşılaştırma, Öneriler | Yalnızca kendi tesisi |
+| **Personel** | Özet, Karşılaştırma, Öneriler | Atandığı tesisler |
 
-Üstteki seçicilerden tesis (veya tüm tesisler) ve yıl seçilir. Ekran aşağı çekilince veriler yenilenir. İnternet yoksa en son indirilen veriler, hiç indirilmemişse uygulamayla gelen örnek veriler gösterilir.
+- **Giriş:** E-posta, şifre ve "Beni hatırla". Hesaplar web uygulamasında tanımlanır ve yayın dosyasıyla gelir.
+- **Özet:** Toplam emisyon, geçen yıla göre değişim, çalışan başına emisyon, kapsamlara göre dağılım, aylık grafik, en büyük 5 kaynak ve azaltım hedefi durumu.
+- **Tesisler:** Tesislerin ızgara görünümü; karta dokununca tesisin detay sayfası açılır.
+- **Karşılaştırma:** Yıllık (bu yıl ve geçen yıl), aylık (önceki ay ve geçen yılın aynı ayı) ve tesisler arası karşılaştırma.
+- **Öneriler:** Web uygulamasının ürettiği uyarılar ve azaltım önerileri.
+- **Kullanıcılar:** Sistem yöneticisi kullanıcıları arar ve role göre süzer. Bir kullanıcıya dokunup **Bu kullanıcının ekranlarını aç** derse o kullanıcının gördüğü ekranlar önizleme olarak açılır.
+- **Yan menü:** Kullanıcı bilgisi, verileri yenileme, hakkında ve çıkış.
+
+Ekran aşağı çekilince veriler yenilenir. İnternet yoksa en son indirilen veriler, hiç indirilmemişse uygulamayla gelen örnek veriler gösterilir.
+
+Demo hesaplar ve şifreleri için depo kökündeki [README.md](../README.md) dosyasına bakın.
 
 ## Çalıştırma
 
@@ -44,19 +57,25 @@ flutter test
 
 ```
 lib/
-  main.dart                     Uygulamanın başlangıcı, alt menü ve üst çubuk
+  main.dart                       Tema ve açılış (FutureBuilder ile veri ve oturum yükleme)
   veri/
-    model.dart                  yayin.json dosyasının veri modeli
-    ozet.dart                   Yıllık toplamlar, karşılaştırmalar, hedef hesabı
-    durum.dart                  Verinin indirilmesi, saklanması, tesis/yıl seçimi
+    model.dart                    yayin.json dosyasının veri modeli
+    kullanici.dart                Roller, kullanıcı modeli, şifre özeti ve giriş kontrolü
+    ozet.dart                     Yıllık toplamlar, karşılaştırmalar, hedef hesabı
+    durum.dart                    Veri, oturum, görünen tesisler, tesis/yıl seçimi
   ekranlar/
+    giris_ekrani.dart             Giriş formu
+    ana_sayfa.dart                Rolüne göre sekmeler, yan menü, önizleme şeridi
     ozet_ekrani.dart
+    tesisler_ekrani.dart          Tesis ızgarası
+    tesis_detay_ekrani.dart       Tek tesisin özeti
     karsilastirma_ekrani.dart
     oneriler_ekrani.dart
+    kullanicilar_ekrani.dart      Sistem yöneticisi: kullanıcı listesi ve önizleme
   bilesenler/
-    ortak.dart                  Renkler, sayı biçimi, ortak küçük bileşenler
-assets/ornek_yayin.json         İnternet yokken gösterilen örnek veri
-test/ozet_test.dart             Birim testleri
+    ortak.dart                    Renkler, sayı biçimi, logo, seçiciler, ortak küçük bileşenler
+assets/ornek_yayin.json           İnternet yokken gösterilen örnek veri
+test/                             Birim ve arayüz testleri
 ```
 
 Her dosyanın ayrıntılı açıklaması için [KOD_REHBERI.md](KOD_REHBERI.md) dosyasına bakın.

@@ -16,7 +16,8 @@ Hesaplamalar **GHG Protocol** (Sera Gazı Protokolü) yaklaşımına göre **Kap
 | **Öneriler** | Emisyon dağılımına göre önceliklendirilmiş azaltım önerileri ve tahmini azaltım potansiyeli (tCO₂e); artış, olağan dışı aylar, eksik veri, hedeften sapma uyarıları; SKDM (CBAM) ve İklim Kanunu bilgilendirmeleri |
 | **Tesisler** | Birden fazla tesis (fabrika, ofis, depo…) tanımlama; çalışan sayısı, alan, üretim birimi ve azaltım hedefi (baz yılı, hedef yılı, %) |
 | **Rapor** | Yazdırılabilir / PDF olarak kaydedilebilir yıllık sera gazı raporu ve CSV özet |
-| **Faktörler ve Ayarlar** | Emisyon faktörlerini güncel resmî değerlerle değiştirme, JSON yedek alma/geri yükleme, örnek veri yükleme |
+| **Faktörler ve Ayarlar** | Emisyon faktörlerini güncel resmî değerlerle değiştirme, JSON yedek alma/geri yükleme, örnek veri yükleme, mobil uygulama için yayın |
+| **Kullanıcılar** | Sistem yöneticisi için kullanıcı ekleme, düzenleme, silme, pasife alma; rol ve tesis ataması |
 
 ## Kullanım
 
@@ -27,18 +28,42 @@ Kurulum gerekmez.
    npm start          # python3 -m http.server 8080
    # http://localhost:8080 adresini açın
    ```
-2. Uygulama ilk açılışta dört örnek tesisin (Gebze metal fabrikası, Bursa tekstil fabrikası, İzmir soğuk hava deposu, İstanbul genel merkez) son üç yıllık verileriyle gelir. Kendi verilerinize başlamak için üstteki **Örnek verileri temizle** düğmesine basın.
-3. **Tesisler** sayfasından şirketinizi / fabrikanızı ekleyin.
-4. **Veri Girişi** sayfasından her ayın faturalarındaki tüketim değerlerini girin.
-5. **Panel**, **Karşılaştırma**, **Öneriler** ve **Rapor** sayfalarından sonuçları inceleyin.
+2. Hesabınızla giriş yapın (demo hesaplar aşağıda).
+3. Uygulama ilk açılışta sekiz örnek tesisin (Gebze metal fabrikası, Bursa tekstil fabrikası, Konya gıda fabrikası, İzmir soğuk hava deposu, Mersin lojistik merkezi, Antalya otel, İstanbul genel merkez, Ankara bölge ofisi) 2023'ten bugüne aylık verileriyle gelir. Sistem yöneticisi kendi verilerine başlamak için üstteki **Örnek verileri temizle** düğmesine basabilir.
+4. Sistem yöneticisi **Tesisler** sayfasından tesisleri, **Kullanıcılar** sayfasından personeli ve yöneticileri tanımlar.
+5. Personel **Veri Girişi** sayfasından atandığı tesislerin aylık fatura ve sayaç değerlerini girer.
+6. **Panel**, **Karşılaştırma**, **Öneriler** ve **Rapor** sayfalarından sonuçlar incelenir.
 
 > Veriler yalnızca kullandığınız tarayıcıda (localStorage) saklanır, hiçbir sunucuya gönderilmez. Düzenli olarak **Ayarlar → Yedek al (JSON)** ile yedek alın.
 
 Grafikler için Chart.js internetten (cdnjs) yüklenir; internet yoksa uygulama tablolarla çalışmaya devam eder.
 
+## Roller ve demo hesaplar
+
+| Rol | Web | Mobil |
+|---|---|---|
+| **Sistem yöneticisi** | Tüm sayfalar, kullanıcı ve tesis yönetimi, yayın | Tüm ekranlar; her kullanıcının ekranlarını önizleme |
+| **Personel** | Atandığı tesisler için veri girişi ve sonuçlar | Atandığı tesislerin sonuçları |
+| **Genel müdür** | Tüm tesislerin sonuçları (salt okunur) | Tüm tesisler, tesis ızgarası ve detay sayfası |
+| **Tesis müdürü** | Kendi tesisinin sonuçları (salt okunur) | Kendi tesisinin sonuçları |
+
+Demo hesapların hepsinin şifresi `123456`:
+
+| Rol | E-posta | Tesisler |
+|---|---|---|
+| Sistem yöneticisi | yonetici@karbon.com | Tümü |
+| Genel müdür | genelmudur@karbon.com | Tümü |
+| Tesis müdürü | gebze.mudur@karbon.com | Gebze Üretim Tesisi |
+| Tesis müdürü | antalya.mudur@karbon.com | Antalya Sahil Oteli |
+| Personel | personel.marmara@karbon.com | Gebze, Bursa, İstanbul |
+| Personel | personel.ege@karbon.com | İzmir, Antalya |
+| Personel | personel.anadolu@karbon.com | Konya, Mersin, Ankara |
+
+Şifreler açık metin olarak değil, SHA-256 özeti olarak saklanır. Uygulamanın sunucusu olmadığı için bu giriş sistemi gerçek bir güvenlik sağlamaz; ekranları rollere göre ayırmak için kullanılır. Gerçek kullanımda sunucu taraflı kimlik doğrulama (ör. Firebase Authentication) gerekir.
+
 ## Mobil uygulama
 
-Yöneticilerin verileri telefondan takip etmesi için bir Flutter uygulaması da var: [mobil/](mobil/). Veri girişi ve kontroller web uygulamasında yapılır; mobil uygulama sadece sonuçları gösterir.
+Yöneticilerin verileri telefondan takip etmesi için bir Flutter uygulaması da var: [mobil/](mobil/). Veri girişi, kontroller ve kullanıcı yönetimi web uygulamasında yapılır; mobil uygulama sonuçları gösterir. Kullanıcı hesapları da yayın dosyasıyla mobile aktarılır, aynı hesaplarla giriş yapılır.
 
 **iPhone'da veya herhangi bir telefonda açmak için:** https://simaykrt.github.io/karbon-ayak-izi/mobil-web/ (Safari'de **Paylaş → Ana Ekrana Ekle** ile uygulama gibi kullanılabilir). Android için APK dosyası GitHub Actions'ta üretilir.
 
@@ -78,13 +103,14 @@ js/factors.js           Emisyon kaynakları, kapsamlar ve varsayılan faktörler
 js/calc.js              Hesaplama motoru (aylık/yıllık toplamlar, karşılaştırma, yoğunluk, hedef)
 js/recommendations.js   Azaltım önerileri motoru
 js/storage.js           Kayıt (localStorage), CSV/JSON, örnek veri
+js/kullanicilar.js      Roller, yetkiler, giriş ve kullanıcı kayıtları
 js/yayin.js             Mobil uygulama için yayın dosyası (yayin.json)
 veri/yayin.json         Mobil uygulamanın okuduğu yayınlanmış veriler
 scripts/                Örnek verilerden yayin.json üretme betiği
 mobil/                  Flutter mobil uygulaması
 mobil-web/              Mobil uygulamanın tarayıcı/iPhone sürümü (scripts/mobil-web-derle.sh ile üretilir)
 js/app.js               Arayüz, sayfalar ve grafikler
-tests/calc.test.js      Birim testleri
+tests/                  Birim testleri (hesaplama, kullanıcılar ve yetkiler)
 ```
 
 ## Testler
